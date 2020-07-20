@@ -417,7 +417,7 @@ public class Graph {
 				loopPoints.add(closeline);
 				mapping.put(i, new ArrayList<Integer>(Arrays.asList(i))); // init stays at same line
 				mapping.put(i+1, new ArrayList<Integer>(Arrays.asList(i+1))); // test too
-				mapping.put(i+2, new ArrayList<Integer>(Arrays.asList(closeline+1))); // loop goes to end
+				mapping.put(i+2, new ArrayList<Integer>(Arrays.asList(closeline-1))); // loop goes to end
 				amount++;
 				
 				int idx = lines.get(i).indexOf("(");
@@ -429,7 +429,7 @@ public class Graph {
 				lines.set(i, "while ("+lines.get(i+1).substring(0, lines.get(i+1).length()-1).trim()+"){");
 				lines.remove(i+1);
 			} else {
-				if (loopPoints.size() > 0 && i == loopPoints.get(loopPoints.size()-1)) {
+				if (loopPoints.size() > 0 && i + amount == loopPoints.get(loopPoints.size()-1)) {
 					amount--;
 					loopPoints.remove(loopPoints.size()-1);
 				} else {
