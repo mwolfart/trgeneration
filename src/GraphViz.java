@@ -9,11 +9,11 @@ import java.io.InputStreamReader;
 
 public class GraphViz {
 
-	    private static String TEMP_DIR = "/tmp";	// Linux
-		//private static String TEMP_DIR = "c:/temp";	// Windows
+	    //private static String TEMP_DIR = "/tmp";	// Linux
+		private static String TEMP_DIR = "c:/temp";	// Windows
 
-	    private static String DOT = "/usr/bin/dot";	// Linux
-	    //private static String DOT = "C:/Users/rn485c/Downloads/graphviz-2.38/release/bin/dot.exe";	// Windows
+	    //private static String DOT = "/usr/bin/dot";	// Linux
+	    private static String DOT = "D:/Documents/UFRGS/TCC/Graphviz/bin/dot.exe";	// Windows
 
 		private StringBuilder graph = new StringBuilder();
 

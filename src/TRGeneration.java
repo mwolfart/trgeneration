@@ -47,6 +47,9 @@ public class TRGeneration {
 		
 		tr.ReadGraph(graph);
 
+		System.out.println("Nodes and corresponding source code\n=========");
+		graph.PrintSrcLines();
+		
 		System.out.println("Test Requirements:\n");
 	
 		tr.PrintNodeCoverage();

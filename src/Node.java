@@ -1,3 +1,7 @@
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
 
 public class Node {
 	private int node_number;	// Node number
@@ -9,13 +13,24 @@ public class Node {
 	private int edgesFrom;
 	private int edgesTo;
 	
+	private List<Integer> srcLinesIndex;
+	
 	public Node(){}
+	
+	public Node(int _node_number, String _srcline, boolean _isEntry, boolean _isExit, List<Integer> _srcLinesIndex) {
+		node_number = _node_number;
+		srcline = _srcline;
+		isEntry = _isEntry;
+		isExit = _isExit;
+		srcLinesIndex = _srcLinesIndex;
+	}
 	
 	public Node(int _node_number, String _srcline, boolean _isEntry, boolean _isExit) {
 		node_number = _node_number;
 		srcline = _srcline;
 		isEntry = _isEntry;
 		isExit = _isExit;
+		srcLinesIndex = new ArrayList<>();
 	}
 	
 	public void SetSrcLineIdx(int idx){	srcLineIdx=idx;	}
@@ -34,6 +49,9 @@ public class Node {
 	public String GetSrcLine() { return srcline; }
 	public void SetSrcLine(String line) { srcline = line; }
 	
+	public List<Integer> GetSrcLinesIndex() { return srcLinesIndex; }
+	public void SetSrcLinesIndex(List<Integer> linesIndex) { srcLinesIndex = linesIndex; }
+	
 	public boolean isEntry() { return isEntry;	}
 	public void SetEntry(boolean e){	isEntry = e; }
 	
@@ -46,5 +64,9 @@ public class Node {
 	
 	public boolean isSameNode(Node _node) {
 		return node_number == _node.GetNodeNumber();
+	}
+	
+	public int getNumLines() {
+		return StringUtils.countMatches(srcline, '\n') + 1;
 	}
 }
