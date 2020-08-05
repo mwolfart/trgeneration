@@ -44,11 +44,10 @@ public class TRGeneration {
 					
 		graph.build();
 		graph.writePng(pngpath);
+		graph.PrintNodeLineSrcs();
 		
 		tr.ReadGraph(graph);
-
-		System.out.println("Nodes and corresponding source code\n=========");
-		graph.PrintSrcLines();
+		
 		
 		System.out.println("Test Requirements:\n");
 	
