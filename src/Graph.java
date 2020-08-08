@@ -1,17 +1,22 @@
 import java.io.File;
 import java.util.*;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+
 public class Graph {
 	private List<Node> nodes;		// Node list
 	private List<Edge> edges;		// Edge list
-	private List<String> lines;
+	private List<String> sourceCode;
+	private List<String> blockLines;
 	private List<Map<Integer, List<Integer>>> lineMappings = new ArrayList<Map<Integer, List<Integer>>>();
 	
 	private boolean printDebug;
 	
 	public Graph() {
 		
-		lines = new ArrayList<String>();
+		sourceCode = new ArrayList<String>();
+		blockLines = new ArrayList<String>();
 		nodes = new ArrayList<Node>();
 		edges = new ArrayList<Edge>();
 	
@@ -22,16 +27,12 @@ public class Graph {
 	
 	// Add a line of source code
 	public void AddSrcLine(String line){
-		Integer addedLines = lines.size();
-		Integer lineToBeAdded = addedLines + 1;
-		lines.add(line);
+		sourceCode.add(line);
 	}
 	
 	// Add a node to the graph
 	public void AddNode(Node _node) {
-		
 		nodes.add(_node);
-		
 	}
 	
 	// Add an edge to the graph
@@ -144,13 +145,60 @@ public class Graph {
 		}
 	}
 	
-	public void build(){		
+	public void dump() {
+		for(int n=0; n<lineMappings.size(); n++) {
+			System.out.println("Mapping #" + n);
+			for(int key : lineMappings.get(n).keySet()) {				
+				System.out.println(" | " + key + " -> " + lineMappings.get(n).get(key));
+			}
+		}
+		dumpsrc();
+	}
+	
+	public void dumpsrc() {
+		for(int n=0; n<sourceCode.size(); n++) {
+			System.out.println(sourceCode.get(n));
+		}
+	}
+	
+	public void build() {
 		cleanup();
 		addDummyNodes();
-		getNodes();
-		numberNodes();
-		combineNodes();
-		fixNumbering();
+		buildFullMap();
+		buildReverseFullMap();
+
+		List<Pair<Integer, Integer>> classesBlocks = getClassesBlocks();
+		//System.out.println(classesBlocks);
+		
+		for (int i=0; i < classesBlocks.size(); i++) {
+			Pair<Integer, Integer> classBlockLimits = classesBlocks.get(i);
+			int start = classBlockLimits.getLeft();
+			int end = classBlockLimits.getRight();
+			
+			List<Pair<Integer, Integer>> methodBlocks = getMethodBlocks(start, end);
+
+			for (int j=0; j < methodBlocks.size(); j++) {
+				Pair<Integer, Integer> methodBlockLimits = methodBlocks.get(j);			
+				// TODO: is it right to ignore method signature and last bracket?
+				copyNextMethod(methodBlockLimits.getLeft()+1, methodBlockLimits.getRight()-1);
+				getNodes();
+				numberNodes();
+				// TODO fix node numbering in next runs.
+				combineNodes();
+				fixNumbering();
+				
+				for(Node node : nodes) {
+					node.SetSrcLineIdx(node.GetSrcLineIdx() + methodBlockLimits.getLeft() + 1);
+				}
+			}
+			
+			String className = getClassNameFromLineId(start);
+			PrintNodeLineSrcs();
+
+			writePng(className + ".png");
+			nodes.clear();
+			edges.clear();
+		}
 	}
 	
 	public void writePng(String path){
@@ -190,26 +238,88 @@ public class Graph {
 		System.out.println("=========\n");
 	}
 	
+	/* TODO: Use thing method in all functions that look for specific characters or words */
+	private boolean lineContainsReservedWord(String line, String word) {
+		return line.matches(".*\\b"+word+"\\b(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$).*");
+	}
+	
+	/* TODO: Support class inside classes */
+	private List<Pair<Integer, Integer>> getClassesBlocks() {
+		List<Pair<Integer, Integer>> classesBlocks = new ArrayList<Pair<Integer, Integer>>();
+		for (int i=0; i<sourceCode.size(); i++) {
+			if (lineContainsReservedWord(sourceCode.get(i), "class")) {
+				int start = i;
+				int end = findEndOfBlock(i+1); // TODO might be problem if { } is in same line
+				classesBlocks.add(new ImmutablePair<Integer, Integer>(start, end));
+			}
+		}
+		return classesBlocks;
+	}
+	
+	/* TODO: Support methods/functions inside methods */
+	/* TODO: maybe refactor with previous function */
+	private List<Pair<Integer, Integer>> getMethodBlocks(int classStartLineId, int classEndLineId) {
+		List<Pair<Integer, Integer>> methodBlocks = new ArrayList<Pair<Integer, Integer>>();
+		for (int i=classStartLineId; i<classEndLineId; i++) {
+			if (lineContainsReservedWord(sourceCode.get(i), "(private|protected|public)")
+					&& sourceCode.get(i).matches(".*\\(.*\\)[ \t]*\\{$")) {
+				int start = i;
+				int end = findEndOfBlock(i+1);
+				methodBlocks.add(new ImmutablePair<Integer, Integer>(start, end));
+			}
+		}
+		return methodBlocks;
+	}
+	
+	
+	private void copyNextMethod(int startLineId, int endLineId) {
+		blockLines.clear();
+		for (int i=startLineId; i<=endLineId; i++) {
+			blockLines.add(sourceCode.get(i));
+		}
+	}
+	
+	private String getClassNameFromLineId(int lineId) {
+		String line = sourceCode.get(lineId);
+		int start = line.indexOf("class") + 6;
+		int idx = start;
+		int end = -1;
+		
+		while (idx < line.length() && end == -1) {
+			if(line.charAt(idx) == '{') 
+				end = idx;
+			idx++;
+		}
+		
+		if (end == -1){
+			System.err.println("Invalid class name");
+			System.err.println("When trying to get class name at line " + lineId);
+			System.exit(2);
+		}
+		
+		return line.substring(start, end-1);
+	}
+	
 	//trim all lines (remove indents and other leading/trailing whitespace)
 	// #n -> #n
 	private void trimLines() {
-		for (int i=0; i<lines.size(); i++){
-			lines.set(i, lines.get(i).trim());
+		for (int i=0; i<sourceCode.size(); i++){
+			sourceCode.set(i, sourceCode.get(i).trim());
 		}
 	}
 	
 	// #n -> #n
 	private void eliminateComments() {		
-		for (int i=0; i<lines.size(); i++) {
-			int idxSingle = lines.get(i).indexOf("//"); 
-			int idxMulti = lines.get(i).indexOf("/*");
+		for (int i=0; i<sourceCode.size(); i++) {
+			int idxSingle = sourceCode.get(i).indexOf("//"); 
+			int idxMulti = sourceCode.get(i).indexOf("/*");
 			int idx = (idxSingle >= 0 && idxMulti >= 0) ? 
 					Math.min(idxSingle, idxMulti) : Math.max(idxSingle, idxMulti);
 			
 			if (idx == -1) {
 				continue;
 			} else if (idx == idxSingle) {
-				lines.set(i, lines.get(i).substring(0, idx)); 
+				sourceCode.set(i, sourceCode.get(i).substring(0, idx)); 
 			} else {
 				i = eraseMultiLineComment(i, idx);
 			}
@@ -217,28 +327,28 @@ public class Graph {
 	}
 		
 	private int eraseMultiLineComment(int startLine, int idxStart) {
-		String preceding = lines.get(startLine).substring(0, idxStart);
+		String preceding = sourceCode.get(startLine).substring(0, idxStart);
 		
 		boolean closingBlockFound = false;
 		int i = startLine, idxClosing = 0;
 		
 		while(!closingBlockFound) {
-			idxClosing = lines.get(i).indexOf("*/");
+			idxClosing = sourceCode.get(i).indexOf("*/");
 			if (idxClosing != -1) {
 				closingBlockFound = true;
 			} else if (i != startLine) {
-				lines.set(i, "");
+				sourceCode.set(i, "");
 			}
 			i++;
 		}
 		int endLine = i-1;
-		String trailing = lines.get(endLine).substring(idxClosing+2);
+		String trailing = sourceCode.get(endLine).substring(idxClosing+2);
 		
 		if (endLine == startLine) {
-			lines.set(startLine, preceding + trailing);
+			sourceCode.set(startLine, preceding + trailing);
 		} else {
-			lines.set(startLine, preceding);
-			lines.set(endLine, trailing);
+			sourceCode.set(startLine, preceding);
+			sourceCode.set(endLine, trailing);
 		}
 		
 		return endLine;
@@ -248,8 +358,8 @@ public class Graph {
 		int blankLines = 0;
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		
-		for(int i = 0; i < lines.size(); i++) {
-			if (lines.get(i).equals("")) {
+		for(int i = 0; i < sourceCode.size(); i++) {
+			if (sourceCode.get(i).equals("")) {
 				blankLines++;
 			}
 			// if first line of file is blank, point to 0.
@@ -258,7 +368,7 @@ public class Graph {
 		}
 		
 		lineMappings.add(mapping);
-		lines.removeAll(Collections.singleton(""));
+		sourceCode.removeAll(Collections.singleton(""));
 	}
 	
 	//move opening braces on their own line to the previous line
@@ -267,16 +377,16 @@ public class Graph {
 		int numRemovedLines = 0;
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 
-		for (int i=0; i<lines.size(); i++){
+		for (int i=0; i<sourceCode.size(); i++){
 			int oldLineId = i+numRemovedLines;
 			
-			if (lines.get(i).equals("{")){
-				lines.set(i-1, lines.get(i-1) + "{");
+			if (sourceCode.get(i).equals("{")){
+				sourceCode.set(i-1, sourceCode.get(i-1) + "{");
 				
 				mapping.put(oldLineId, initArray(i-1)); 
 				numRemovedLines++;
 				
-				lines.remove(i);
+				sourceCode.remove(i);
 				i--;
 			} else {
 				mapping.put(oldLineId, initArray(i));
@@ -291,7 +401,7 @@ public class Graph {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int numAddedLines = 0;
 		
-		for (int i=0; i<lines.size(); i++) {
+		for (int i=0; i<sourceCode.size(); i++) {
 			int oldLineId = i-numAddedLines;
 
 			// add current line to targets
@@ -300,15 +410,15 @@ public class Graph {
 			targetLinesIds.add(i);
 			
 			// find brace and check if there is code after
-			int idx = lines.get(i).indexOf("{");
+			int idx = sourceCode.get(i).indexOf("{");
 			boolean hasCodeAfterBrace = (idx > -1 
-					&& idx < lines.get(i).length()-1);
+					&& idx < sourceCode.get(i).length()-1);
 			
 			if (hasCodeAfterBrace){ 
-				String preceding = lines.get(i).substring(0, idx+1);
-				String trailing = lines.get(i).substring(idx+1);
-				lines.add(i+1, preceding); //insert the text right of the { as the next line
-				lines.set(i, trailing); //remove the text right of the { on the current line
+				String preceding = sourceCode.get(i).substring(0, idx+1);
+				String trailing = sourceCode.get(i).substring(idx+1);
+				sourceCode.add(i+1, trailing); //insert the text right of the { as the next line
+				sourceCode.set(i, preceding); //remove the text right of the { on the current line
 				
 				mapping.put(oldLineId, targetLinesIds);
 				numAddedLines++;
@@ -325,7 +435,7 @@ public class Graph {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int numAddedLines = 0;
 		
-		for (int i=0; i<lines.size(); i++){
+		for (int i=0; i<sourceCode.size(); i++){
 			int oldLineId = i-numAddedLines;
 
 			// add current line to targets
@@ -333,12 +443,12 @@ public class Graph {
 					mapping.get(oldLineId) : new ArrayList<Integer>());
 			targetLinesIds.add(i);
 			
-			int idx = lines.get(i).indexOf("}"); 
+			int idx = sourceCode.get(i).indexOf("}"); 
 			if (idx > 1) { //this means the } is not starting a line
-				String trailing = lines.get(i).substring(idx);
-				String preceding = lines.get(i).substring(0, idx);
-				lines.add(i+1, trailing); //insert the text starting with the } as the next line
-				lines.set(i, preceding); //remove the text starting with the } on the current line
+				String trailing = sourceCode.get(i).substring(idx);
+				String preceding = sourceCode.get(i).substring(0, idx);
+				sourceCode.add(i+1, trailing); //insert the text starting with the } as the next line
+				sourceCode.set(i, preceding); //remove the text starting with the } on the current line
 				
 				mapping.put(oldLineId, targetLinesIds);
 				numAddedLines++;
@@ -355,20 +465,21 @@ public class Graph {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int numAddedLines = 0;
 		
-		for (int i=0; i<lines.size(); i++){
+		for (int i=0; i<sourceCode.size(); i++){
 			int oldLineId = i-numAddedLines;
 
 			// add current line to targets
 			List<Integer> targetLinesIds = (mapping.containsKey(oldLineId) ? 
 					mapping.get(oldLineId) : new ArrayList<Integer>());
 			targetLinesIds.add(i);
+			
+			int idx = sourceCode.get(i).indexOf("}"); 
+			if (idx > -1 && sourceCode.get(i).length() > 1) { //this means there is text after the {
+				String trailing = sourceCode.get(i).substring(idx+1);
+				String preceding = sourceCode.get(i).substring(0, idx+1);
 
-			int idx = lines.get(i).indexOf("}"); 
-			if (idx > -1 && lines.get(i).length() > 1) { //this means there is text after the {
-				String trailing = lines.get(i).substring(idx);
-				String preceding = lines.get(i).substring(0, idx);
-				lines.add(i+1, trailing); //insert the text right of the { as the next line
-				lines.set(i, preceding); //remove the text right of the { on the current line
+				sourceCode.add(i+1, trailing); //insert the text right of the { as the next line
+				sourceCode.set(i, preceding); //remove the text right of the { on the current line
 				
 				mapping.put(oldLineId, targetLinesIds);
 				numAddedLines++;
@@ -380,24 +491,25 @@ public class Graph {
 		lineMappings.add(mapping);
 	}
 
-	//Separate lines with containing semicolons except at the end
+	//Separate sourceCode with containing semicolons except at the end
 	private void separateLinesWithSemicolons() {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int numAddedLines = 0;
 		
-		for (int i=0; i < lines.size(); i++){
+		for (int i=0; i < sourceCode.size(); i++){
 			int oldLineId = i-numAddedLines;
 			List<Integer> targetLinesIds = new ArrayList<Integer>();
 			
-			List<String> statements = initArray(lines.get(i).split(";"));
+			List<String> statements = initArray(sourceCode.get(i).split(";"));
 			
 			targetLinesIds.add(i);
 			if (statements.size() > 1) {
-				boolean lineEndsWithSemicolon = lines.get(i).matches("^.*;$");
+				boolean lineEndsWithSemicolon = sourceCode.get(i).matches("^.*;$");
+				sourceCode.set(i, statements.get(0) + ";");
 				
-				for (int j=0; j < statements.size(); j++){
+				for (int j=1; j < statements.size(); j++){
 					String pause = (j == statements.size()-1 && !lineEndsWithSemicolon ? "" : ";");
-					lines.add(i+j, statements.get(j) + pause);
+					sourceCode.add(i+j, statements.get(j) + pause);
 					targetLinesIds.add(i+j);
 				}
 				
@@ -416,21 +528,24 @@ public class Graph {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int removedLines = 0;
 
-		for (int i=0; i < lines.size(); i++) {
-			int oldLineId = i+removedLines;
-			mapping.put(oldLineId, new ArrayList<Integer>(Arrays.asList(i)));
+		for (int i=0; i < sourceCode.size(); i++) {
+			mapping.put(i+removedLines, initArray(i));
+			String curLine = sourceCode.get(i);
 			
-			while (!lines.get(i).contains(";") 
-					&& !lines.get(i).contains("{") 
-					&& !lines.get(i).contains("}")
-					&& !((lines.get(i).contains("case") || lines.get(i).contains("default"))
-							&& lines.get(i).contains(":"))
+			while (!curLine.contains(";") 
+					&& !curLine.contains("{") 
+					&& !curLine.contains("}")
+					&& !((curLine.contains("case") || curLine.contains("default"))
+							&& curLine.contains(":"))
 					){
-				lines.set(i, lines.get(i) + lines.get(i+1));
-				lines.remove(i+1);
+				String separator = (curLine.charAt(curLine.length()-1) != ' '
+									&& sourceCode.get(i+1).charAt(0) != ' ' ? " " : "");
+				sourceCode.set(i, curLine + separator + sourceCode.get(i+1));
+				sourceCode.remove(i+1);
 
 				removedLines++;
-				mapping.put(oldLineId, initArray(i));
+				mapping.put(i+removedLines, initArray(i));
+				curLine = sourceCode.get(i);
 			}
 		}
 		
@@ -442,7 +557,7 @@ public class Graph {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int numAddedLines = 0;
 		
-		for (int i=0; i<lines.size(); i++){
+		for (int i=0; i<sourceCode.size(); i++){
 			int oldLineId = i-numAddedLines;
 
 			// add current line to targets
@@ -451,16 +566,16 @@ public class Graph {
 			targetLinesIds.add(i);
 			mapping.put(oldLineId, targetLinesIds);
 			
-			if (lines.get(i).matches("[case|default].*:.*")){
-				int idx = lines.get(i).indexOf(":");
+			if (sourceCode.get(i).matches("[case|default].*:.*")){
+				int idx = sourceCode.get(i).indexOf(":");
 				
-				if (lines.get(i).substring(idx+1).matches("[ \t]*\\{[ \t]*")) {
+				if (sourceCode.get(i).substring(idx+1).matches("[ \t]*\\{[ \t]*")) {
 					continue;
 				}
 				
-				if (idx < lines.get(i).length()-1){
-					lines.add(i+1, lines.get(i).substring(idx+1));
-					lines.set(i, lines.get(i).substring(0, idx+1));
+				if (idx < sourceCode.get(i).length()-1){
+					sourceCode.add(i+1, sourceCode.get(i).substring(idx+1));
+					sourceCode.set(i, sourceCode.get(i).substring(0, idx+1));
 					numAddedLines++;
 				}
 			}
@@ -473,33 +588,29 @@ public class Graph {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		List<Integer> loopsClosingLines = new ArrayList<Integer>();
 		
-		for (int i=0; i<lines.size(); i++){			
-			if (lines.get(i).matches("^for.+$")){
+		for (int i=0; i<sourceCode.size(); i++){			
+			if (sourceCode.get(i).matches("^for.+$")){
 				int depth = loopsClosingLines.size();
 				
-				int closingLine = findForLoopClosingLine(i);
-				if (closingLine == -1){
-					System.err.println("Braces are not balanced");
-					System.exit(2);
-				}
+				int closingLine = findEndOfBlock(i+3);
 				
 				//move the initialization before the loop
 				mapping.put(i+depth, initArray(i));
-				int idx = lines.get(i).indexOf("(");
-				lines.add(i, "%forcenode%" + lines.get(i).substring(idx+1));
+				int idx = sourceCode.get(i).indexOf("(");
+				sourceCode.add(i, "%forcenode%" + sourceCode.get(i).substring(idx+1));
 				i++; //adjust for insertion
 				
 				//move the iterator to just before the close
 				mapping.put(i+1+depth, initArray(closingLine-1));
-				idx = lines.get(i+2).indexOf(")");
-				lines.add(closingLine+1, "%forcenode%" + lines.get(i+2).substring(0, idx) + ";");
-				lines.remove(i+2); //remove old line
+				idx = sourceCode.get(i+2).indexOf(")");
+				sourceCode.add(closingLine+1, "%forcenode%" + sourceCode.get(i+2).substring(0, idx) + ";");
+				sourceCode.remove(i+2); //remove old line
 				
 				//replace for initialization with while
 				mapping.put(i+depth, initArray(i));
-				String testStatement = lines.get(i+1).substring(0, lines.get(i+1).length()-1).trim();
-				lines.set(i, "while (" + testStatement + "){");
-				lines.remove(i+1); //remove old (test) line
+				String testStatement = sourceCode.get(i+1).substring(0, sourceCode.get(i+1).length()-1).trim();
+				sourceCode.set(i, "while (" + testStatement + "){");
+				sourceCode.remove(i+1); //remove old (test) line
 
 				loopsClosingLines.add(closingLine);
 			} else {
@@ -513,27 +624,6 @@ public class Graph {
 		}
 		
 		lineMappings.add(mapping);
-	}
-
-	//find end of for loop
-	private int findForLoopClosingLine(int forLoopStartingLine) {
-		int curLineId = forLoopStartingLine + 3; // ignore initialization, test and step
-		int closingLine = -1;
-		int depth = 0;
-		
-		while (curLineId < lines.size() && closingLine == -1) {
-			String curLine = lines.get(curLineId);
-			if (curLine.contains("{")) {
-				depth++;
-			} else if (curLine.contains("}") && depth > 0) {
-				depth--;
-			} else {
-				closingLine = curLineId;
-			}
-			curLineId++;
-		}
-		
-		return closingLine;
 	}
 	
 	//given line id and depth, find its last id in final source code
@@ -594,103 +684,135 @@ public class Graph {
 		removeBlankLines();
 		
 		// TODO trim lines each step? There are some spaces causing extra lines.
+		//  actually, in the functions, do not split if its only spaces and tabs
 		moveOpeningBraces();
 		moveCodeAfterOpenedBrace(); // todo perform before openingBraces?
 		moveClosingBraces();
 		moveCodeAfterClosedBrace();
-		
+		trimLines();
 		// At this point, all opening braces end a line and all closing braces are on their own line;
 
 		separateLinesWithSemicolons();
+		trimLines();
 		combineMultiLineStatements();
+		trimLines();
 		// convertForEachToFor();
 		convertForToWhile();
 		trimLines();
 		separateCaseStatements();
 		trimLines();
 		
-		buildFullMap();
-		buildReverseFullMap();
-		
 		return Defs.success;
 	}
 	
+	/* TODO: maybe refactor the three next functions */
+	private int findStartOfBlock(int startingLine) {
+		return findStartOfBlock(startingLine, false);
+	}
+
+	/* TODO: Maybe reenginer this */
+	private int findStartOfBlock(int startingLine, boolean useBlockLines) {
+		int curLineId = startingLine;
+		int openingLine = -1;
+		int depth = 0;
+		
+		while (curLineId >= 0 && openingLine == -1) {
+			String curLine = (useBlockLines ? blockLines.get(curLineId) : sourceCode.get(curLineId));
+			if (curLine.contains("}")) {
+				depth++;
+			} else if (curLine.contains("{") && depth > 0) {
+				depth--;
+			} else if (curLine.contains("{")) {
+				openingLine = curLineId;
+			}
+			curLineId--;
+		}
+
+		if (openingLine == -1){
+			System.err.println("Braces are not balanced");
+			System.err.println("When trying to find start of block ending at line " + (startingLine+1));			
+			System.exit(2);
+		}
+		
+		return openingLine;
+	}
+	
+	private int findEndOfBlock(int startingLine) {
+		int curLineId = startingLine;
+		int closingLine = -1;
+		int depth = 0;
+		
+		while (curLineId < sourceCode.size() && closingLine == -1) {
+			String curLine = sourceCode.get(curLineId);
+			if (curLine.contains("{")) {
+				depth++;
+			} else if (curLine.contains("}") && depth > 0) {
+				depth--;
+			} else if (curLine.contains("}")) {
+				closingLine = curLineId;
+			}
+			curLineId++;
+		}
+
+		if (closingLine == -1){
+			System.err.println("Braces are not balanced");
+			System.err.println("When trying to find end of block starting at line " + (startingLine+1));
+			System.err.println("Line content: " + sourceCode.get(startingLine));
+			System.exit(2);
+		}
+		
+		return closingLine;
+	}
+	
 	private void addDummyNodes(){
+		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
+		int numAddedLines = 0;
 		
-		for (int i=0; i<lines.size(); i++){
-		
-			String line = lines.get(i);
+		for (int i=0; i<sourceCode.size(); i++){
+			String line = sourceCode.get(i);
 			
 			if (line.matches("}")){
-				
 				//find the opening
-				int j=i-1;
-				int openline=-1;
-				int depth=0;
-				while (j>=0 & openline==-1){
-					if (lines.get(j).contains("}")) depth++;
-					if (lines.get(j).contains("{")){
-						if (depth==0) openline = j;
-						else depth--;
-					}
-					j--;
-				}
-				if (j<-1){
-					System.err.println("Braces are not balanced");
-					System.exit(2);
-				}
+				int openline = findStartOfBlock(i-1);
 				
-				if (lines.get(openline).toLowerCase().matches("^(for|while|do).*")){
-					
-					if (lines.get(i-1).equals("}")){
-						lines.add(i, "dummy_node;");
-						i--; //adjust i due to insertion
-					}
-					
+				if (sourceCode.get(openline).toLowerCase().matches("^(while|do).*")
+						&& sourceCode.get(i-1).equals("}")) {
+					sourceCode.add(i, "dummy_node;");
+					numAddedLines++;
+					// i--; //adjust i due to insertion // I don't think this is needed.
 				}
 			}
+			
+			int oldLineId = i-numAddedLines;
+			mapping.put(oldLineId, initArray(i));
 		}
+		
+		lineMappings.add(mapping);
 	}
 	
 	private void getNodes(){
-		
-		
 		if (printDebug){
 			String outlines="\n***** Processed Source Code:\n\n";
-			for (int i=0; i<lines.size(); i++) outlines += i+": "+lines.get(i)+"\n";
+			for (int i=0; i<blockLines.size(); i++) outlines += i+": "+blockLines.get(i)+"\n";
 			System.out.printf("%s\n", outlines);
 		}
 		
 		int conditionalStartLine=0;
 		List<Integer> edgeStartLines = new ArrayList<Integer>();
 		
-		for (int i=0; i<lines.size(); i++){
+		for (int i=0; i<blockLines.size(); i++){
 			
-			String line = lines.get(i);
+			String line = blockLines.get(i);
 			
 			//if we find a close brace, need to figure out where to go from here
 			if (line.matches("}")){
 				
 				//find the opening
-				int j=i-1;
-				int openline=-1;
-				int depth=0;
-				while (j>=0 & openline==-1){
-					if (lines.get(j).contains("}")) depth++;
-					if (lines.get(j).contains("{")){
-						if (depth==0) openline = j;
-						else depth--;
-					}
-					j--;
-				}
-				if (openline == -1){
-					System.err.println("Braces are not balanced");
-					System.exit(2);
-				}
+				int openline = findStartOfBlock(i-1, true);
 				
 				//for loops, add an edge back to the start
-				if (lines.get(openline).toLowerCase().matches("^(for|while|do).*")){
-					if (lines.get(openline).toLowerCase().matches("^(for|while).*")){
+				if (blockLines.get(openline).toLowerCase().matches("^(for|while|do).*")){
+					if (blockLines.get(openline).toLowerCase().matches("^(for|while).*")){
 						addEdge(getPrevLine(i),openline);	
 						addEdge(openline,getNextLine(i));
 					}
@@ -702,11 +824,11 @@ public class Graph {
 				}
 				
 				//for conditionals, we won't add edges until after the block.  Then link all the close braces to the end of the block
-				else if (lines.get(openline).toLowerCase().matches("^(if|else if).*")){
-					if (lines.get(openline).toLowerCase().matches("^if.*")) conditionalStartLine = openline;
+				else if (blockLines.get(openline).toLowerCase().matches("^(if|else if).*")){
+					if (blockLines.get(openline).toLowerCase().matches("^if.*")) conditionalStartLine = openline;
 					addEdge(conditionalStartLine,openline+1);
 					//if we're not done with the conditional block, save the start of this edge until we find the end of the block
-					if (lines.size() > i+1 && lines.get(i+1).toLowerCase().matches("^else.*")){
+					if (blockLines.size() > i+1 && blockLines.get(i+1).toLowerCase().matches("^else.*")){
 						
 						edgeStartLines.add(getPrevLine(i));						
 					}
@@ -720,7 +842,7 @@ public class Graph {
 						addEdge(openline,getNextLine(i));
 					}
 				}
-				else if (lines.get(openline).toLowerCase().substring(0,4).equals("else")){
+				else if (blockLines.get(openline).toLowerCase().substring(0,4).equals("else")){
 					if (edgeStartLines.size() == 0){
 						System.err.println("Else without If");
 						System.exit(2);
@@ -732,15 +854,15 @@ public class Graph {
 					}
 					edgeStartLines.clear();
 				}
-				else if (lines.get(openline).toLowerCase().matches("^switch.*")){
+				else if (blockLines.get(openline).toLowerCase().matches("^switch.*")){
 
 					//add edges to cases
 					for (int k=openline; k<i; k++){ //iterate through the case statement
-						if (lines.get(k).matches("^(case|default).*")){
-							if (lines.get(k).matches(":$")) addEdge(openline,k);
+						if (blockLines.get(k).matches("^(case|default).*")){
+							if (blockLines.get(k).matches(":$")) addEdge(openline,k);
 							else addEdge(openline,getNextLine(k));  //didnt't split lines at : so could be the next line
 						}
-						if (lines.get(k).matches("^break;")) addEdge(k,getNextLine(i));
+						if (blockLines.get(k).matches("^break;")) addEdge(k,getNextLine(i));
 					}
 				}
 			}
@@ -749,9 +871,9 @@ public class Graph {
 				//TODO REMOVE AND CHECK IF IT CREATES SEPARATE NODES
 				
 				//we'll add a node and an edge unless these are not executable lines
-				if (!lines.get(i).toLowerCase().matches("^(do|else|case|default).*")){
+				if (!blockLines.get(i).toLowerCase().matches("^(do|else|case|default).*")){
 					addNode(line,i);
-					if (i>0 && !lines.get(getPrevLine(i)).toLowerCase().matches("^(do|else|case|default).*") && !lines.get(i-1).equals("}")){
+					if (i>0 && !blockLines.get(getPrevLine(i)).toLowerCase().matches("^(do|else|case|default).*") && !blockLines.get(i-1).equals("}")){
 						addEdge(getPrevLine(i), i);
 					}
 					
@@ -995,7 +1117,7 @@ public class Graph {
 		
 		int prevEdge=start-1;
 		
-		while (prevEdge > -1 && lines.get(prevEdge).equals("}")) prevEdge--;
+		while (prevEdge > -1 && blockLines.get(prevEdge).equals("}")) prevEdge--;
 		
 		return prevEdge;
 		
@@ -1005,7 +1127,7 @@ public class Graph {
 		
 		int nextEdge=start+1;
 		
-		while (nextEdge < lines.size() && lines.get(nextEdge).equals("}")) nextEdge++;
+		while (nextEdge < blockLines.size() && blockLines.get(nextEdge).equals("}")) nextEdge++;
 		
 		return nextEdge;
 	
