@@ -176,7 +176,9 @@ public class Graph {
 			int end = classBlockLimits.getRight();
 			
 			List<Pair<Integer, Integer>> methodBlocks = getMethodBlocks(start, end);
-
+			List<Node> allNodes = new ArrayList<Node>();
+			List<Edge> allEdges = new ArrayList<Edge>();
+			
 			for (int j=0; j < methodBlocks.size(); j++) {
 				Pair<Integer, Integer> methodBlockLimits = methodBlocks.get(j);			
 				// TODO: is it right to ignore method signature and last bracket?
@@ -187,10 +189,15 @@ public class Graph {
 				combineNodes();
 				fixNumbering();
 				
-				for(Node node : nodes) {
-					node.SetSrcLineIdx(node.GetSrcLineIdx() + methodBlockLimits.getLeft() + 1);
-				}
+				fixNodesAndEdgesNumbers(allNodes.size(), methodBlockLimits.getLeft()+1);
+				allNodes.addAll(nodes);
+				allEdges.addAll(edges);
+				nodes.clear();
+				edges.clear();
 			}
+			
+			nodes = allNodes;
+			edges = allEdges;
 			
 			String className = getClassNameFromLineId(start);
 			PrintNodeLineSrcs();
@@ -1060,13 +1067,22 @@ public class Graph {
 		
 	}
 	
+	private void fixNodesAndEdgesNumbers(int nextNodeNumber, int startingLine) {
+		for(int i=0; i<nodes.size(); i++) {
+			nodes.get(i).SetNodeNumber(nextNodeNumber+i);
+			nodes.get(i).SetSrcLineIdx(nodes.get(i).GetSrcLineIdx()+startingLine);
+		}
+		
+		for(int i=0; i<edges.size(); i++) {
+			edges.get(i).SetValues(edges.get(i).GetStart() + nextNodeNumber, edges.get(i).GetEnd() + nextNodeNumber);
+		}
+	}
 	
 	private String generateDOT(){
 		
 		String strDOT = "digraph cfg{\n";
 		
 		for (Node n: nodes){
-			
 			String line = "";
 			
 			//attributes

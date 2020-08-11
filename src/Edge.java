@@ -20,4 +20,9 @@ public class Edge {
 	public boolean isSameEdge(Edge _edge) {	
 		return (start == _edge.GetStart() && end == _edge.GetEnd());
 	}
+	
+	public void SetValues(int st, int ed) {
+		start = st;
+		end = ed;
+	}
 }
