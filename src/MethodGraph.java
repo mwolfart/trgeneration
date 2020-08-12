@@ -132,55 +132,6 @@ public class MethodGraph {
 		return null;
 	}
 	
-	public void PrintNodes() {
-		Iterator<Node> iterator = nodes.iterator();
-		Node node;
-		while(iterator.hasNext()) {
-			node = iterator.next();
-			System.out.println(node);
-		}
-	}
-	
-	public void PrintEdges() {
-		Iterator<Edge> iterator = edges.iterator();
-		Edge edge;
-		while(iterator.hasNext()) {
-			edge = iterator.next();
-			System.out.println(edge);
-		}
-	}
-	
-	public void PrintNodeLineSrcs(List<Map<Integer, List<Integer>>> mappings) {
-		Iterator<Node> iterator = nodes.iterator();
-		Node node;
-		while(iterator.hasNext()) {
-			node = iterator.next();
-			System.out.println("Printing source code present in node #" + node.GetNodeNumber() + "...");
-			String unifiedLines = node.GetSrcLine();
-			String[] lines = unifiedLines.split("\n");
-			for(int i=0; i < lines.length ; i++) {
-				String line = lines[i];
-				line = line.replace("%forcenode%", "[FOR component] ");
-				Integer curLineId = node.GetSrcLineIdx() + i;
-				List<Integer> originalLines = mappings.get(mappings.size()-1).get(curLineId);
-				for(int j=0; j<originalLines.size(); j++) {
-					originalLines.set(j, originalLines.get(j)+1);
-				}
-				System.out.println(" - Code `" + line + "` originally present at line(s) " + 
-						originalLines);
-			}
-			System.out.println("End of source code for node " + node.GetNodeNumber() + "\n");
-			System.out.println("Node " + node.GetNodeNumber() + " connects to nodes " + node.GetEdgesTo() + "\n");
-
-		    // method `value`: [47] -> [48] (-> [49]; -> F[51])
-			// generate TR for each method
-		    // initial node: 47
-		    // end node: 51
-		
-		}
-		System.out.println("=========\n");
-	}
-
 	public void fixNodeNumbers(int nextNodeId) {
 		for(int i=0; i<nodes.size(); i++) {
 			nodes.get(i).SetNodeNumber(nodes.get(i).GetNodeNumber() + nextNodeId);
@@ -214,7 +165,104 @@ public class MethodGraph {
 		GraphViz gv = new GraphViz();
 		gv.writeGraphToFile(gv.getGraph(strDOT, "png"), out);
 	}
+	
+	public void PrintNodes() {
+		Iterator<Node> iterator = nodes.iterator();
+		Node node;
+		while(iterator.hasNext()) {
+			node = iterator.next();
+			System.out.println(node);
+		}
+	}
+	
+	public void PrintEdges() {
+		Iterator<Edge> iterator = edges.iterator();
+		Edge edge;
+		while(iterator.hasNext()) {
+			edge = iterator.next();
+			System.out.println(edge);
+		}
+	}
+	
+	public void PrintGraphStructure(List<Map<Integer, List<Integer>>> mappings) {
+		Iterator<Node> iterator = nodes.iterator();
+		Node node;
+		while(iterator.hasNext()) {
+			node = iterator.next();
+			System.out.println("Printing source code present in node #" + node.GetNodeNumber() + "...");
+			String unifiedLines = node.GetSrcLine();
+			String[] lines = unifiedLines.split("\n");
+			for(int i=0; i < lines.length ; i++) {
+				String line = lines[i];
+				line = line.replace("%forcenode%", "[FOR component] ");
+				Integer curLineId = node.GetSrcLineIdx() + i;
+				List<Integer> originalLines = mappings.get(mappings.size()-1).get(curLineId);
+				for(int j=0; j<originalLines.size(); j++) {
+					originalLines.set(j, originalLines.get(j)+2); // TODO why the f* do I have to increment 2 and not 1?
+				}
+				System.out.println(" - Code `" + line + "` originally present at line(s) " + 
+						originalLines);
+			}
+			System.out.println("End of source code for node " + node.GetNodeNumber() + "\n");		
+		}
+		System.out.println("=========\n");
+	}
+	
+	public void PrintLineFlow(List<Map<Integer, List<Integer>>> mappings) {
+		System.out.println("Printing line flow for class " + className + " method " + methodName + "...\n");
+		PrintNodeLineFlow(0, mappings, new ArrayList<Integer>());
+		System.out.println("\n");
+	}
+	
+	private void PrintNodeLineFlow(int nodeNumber, List<Map<Integer, List<Integer>>> mappings, List<Integer> visitedNodes) {			
+		Node node = nodes.get(nodeNumber); // todo check if node id = node position in array
+		String unifiedLines = node.GetSrcLine();
+		String[] lines = unifiedLines.split("\n");
+		for(int i=0; i < lines.length ; i++) {
+			Integer curLineId = node.GetSrcLineIdx() + i;
+			List<Integer> originalLines = mappings.get(mappings.size()-1).get(curLineId);
+			// TODO why shouldnt I increment?
 
+			System.out.print(originalLines);
+			
+			if (i != lines.length -1) {
+				System.out.print(" -> ");
+			}
+		}
+		
+		if(visitedNodes.contains(nodeNumber)) {
+			System.out.print("[loop]");
+			return;
+		}
+		visitedNodes.add(nodeNumber);
+		
+		List<Integer> targetNodes = getTargetsOfNode(nodeNumber);
+		if (targetNodes.size() > 1) {
+			System.out.print(" -> (");
+			
+			for(int target : targetNodes) {
+				PrintNodeLineFlow(target, mappings, visitedNodes);
+				System.out.print(" ; ");
+			}
+			System.out.print(") ");
+		} else if (targetNodes.size() == 1) {
+			System.out.print(" -> ");
+			PrintNodeLineFlow(targetNodes.get(0), mappings, visitedNodes);
+		} else {
+			System.out.print("[end]");
+		}
+	}
+	
+	private List<Integer> getTargetsOfNode(int src) {
+		List<Integer> targets = new ArrayList<Integer>();
+		for (Edge edge : edges) {
+			if (edge.GetStart() == src) {
+				targets.add(edge.GetEnd());
+			}
+		}
+		return targets;
+	}
+	
 	private void getNodes(){
 		if (printDebug){
 			String outlines="\n***** Processed Source Code:\n\n";

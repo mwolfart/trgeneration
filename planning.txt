@@ -4,18 +4,18 @@ Last changes
 
 TODOs
 [HIGH]
-- Read each of the graphs and return test requirements (medium/low effort)
-- Print graph connections on terminal (low effort)
-- Get ID of method with parameters (low effort)
+- Store parameters along with methods (low effort)
+- Assure line flow is correct (low-medium effort)
+- Fix for mapping
 
 [MED/HIGH]
 - For each is not supported (medium-high effort)
 - Classes inside classes are not supported (medium-high effort)
 - Functions inside methods are not supported (medium-high effort)
 - Ternary operator is interpreted as a normal assignment (medium effort)
+- "double" is recognized as "do"
 
 [MED]
-- Empty lines are still mapped (low effort)
 - Method signature is currently ignored, check if that's correct (?)
 - Some parts of the logic will look for specific words or characters, and do not test if these are inside a string (low-effort)
 - Try catch is not properly mapped (high effort)

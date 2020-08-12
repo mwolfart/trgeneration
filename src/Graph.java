@@ -7,7 +7,8 @@ public class Graph {
 	//private List<Node> nodes;		// Node list
 	//private List<Edge> edges;		// Edge list
 	private List<String> sourceCode;
-	private List<MethodGraph> methodGraphs = new ArrayList<MethodGraph>();
+	private List<MethodGraph> methodGraphs;
+	private List<Integer> emptyLines;
 	
 	private List<Map<Integer, List<Integer>>> lineMappings = new ArrayList<Map<Integer, List<Integer>>>();
 	
@@ -15,6 +16,8 @@ public class Graph {
 	
 	public Graph() {
 		sourceCode = new ArrayList<String>();	
+		methodGraphs = new ArrayList<MethodGraph>();
+		emptyLines = new ArrayList<Integer>();
 		printDebug = false;
 	}
 	
@@ -41,6 +44,22 @@ public class Graph {
 		}
 	}
 	
+	public void dumpblockids(List<Pair<Integer, Integer>> blockList) {
+		for(Pair<Integer, Integer> blocklimits : blockList) {
+			int start = blocklimits.getLeft();
+			int end = blocklimits.getRight();
+			List<Integer> startO = lineMappings.get(lineMappings.size()-1).get(start);
+			List<Integer> endO = lineMappings.get(lineMappings.size()-1).get(end);
+			for(int i=0; i<startO.size(); i++) {
+				startO.set(i, startO.get(i)+1);
+			}
+			for(int i=0; i<endO.size(); i++) {
+				endO.set(i, endO.get(i)+1);
+			}
+			System.out.println(startO + " " + endO);
+		}
+	}
+	
 	public void build() {
 		cleanup();
 		addDummyNodes();
@@ -48,7 +67,6 @@ public class Graph {
 		buildReverseFullMap();
 
 		List<Pair<Integer, Integer>> classesBlocks = getClassesBlocks();
-		//int nextNodeId = 0;
 		
 		for (int i=0; i < classesBlocks.size(); i++) {
 			Pair<Integer, Integer> classBlockLimits = classesBlocks.get(i);
@@ -56,7 +74,8 @@ public class Graph {
 			int end = classBlockLimits.getRight();
 			String className = getClassNameFromLineId(start);
 			
-			List<Pair<Integer, Integer>> methodBlocks = getMethodBlocks(start, end);			
+			List<Pair<Integer, Integer>> methodBlocks = getMethodBlocks(start, end);
+			
 			for (int j=0; j < methodBlocks.size(); j++) {
 				// TODO parse method parameters
 				int methodBlockStart = methodBlocks.get(j).getLeft();
@@ -74,15 +93,29 @@ public class Graph {
 				methodGraph.fixNodeNumbers(nextNodeId);
 				*/
 				methodGraph.writePng();
-				methodGraph.PrintNodeLineSrcs(lineMappings);
 				methodGraphs.add(methodGraph);	
 			}
-			
-			//PrintNodeLineSrcs();
 		}
 	}
 	
-	public void getTestRequirements() {
+	public void PrintGraphStructures() {
+		for(MethodGraph graph : methodGraphs) {
+			String className = graph.GetClassName();
+			String methodName = graph.GetMethodName();
+			
+			if (className.equals(methodName)) {
+				System.out.println("Graph structure for class " + className
+						+ " constructor:\n");
+			} else {
+				System.out.println("Graph structure for class " + className
+						+ " method " + methodName + ":\n");
+			}
+			
+			graph.PrintGraphStructure(lineMappings);
+		}
+	}
+	
+	public void PrintTestRequirements() {
 		TestRequirements tr = new TestRequirements();
 		
 		for(MethodGraph graph : methodGraphs) {
@@ -105,6 +138,12 @@ public class Graph {
 			tr.PrintPrimePathCoverage();
 			
 			System.out.println("\n");
+		}
+	}
+	
+	public void PrintLineFlows() {
+		for(MethodGraph graph : methodGraphs) {
+			graph.PrintLineFlow(lineMappings);
 		}
 	}
 	
@@ -257,6 +296,7 @@ public class Graph {
 		for(int i = 0; i < sourceCode.size(); i++) {
 			if (sourceCode.get(i).equals("")) {
 				blankLines++;
+				emptyLines.add(i);
 			}
 			// if first line of file is blank, point to 0.
 			int targetLineId = Math.max(i-blankLines, 0);
@@ -559,11 +599,13 @@ public class Graph {
 		Map<Integer, List<Integer>> reverseMap = new HashMap<Integer, List<Integer>>();
 		
 		for(Integer key : lastMap.keySet()) {
-			for (Integer tgt : lastMap.get(key)) {				
-				if (reverseMap.get(tgt) != null) {
+			for (Integer tgt : lastMap.get(key)) {
+				if (emptyLines.contains(key)) {
+					continue;
+				} else if (reverseMap.get(tgt) != null) {
 					reverseMap.get(tgt).add(key);
 				} else {
-					reverseMap.put(tgt, new ArrayList<Integer>(Arrays.asList(key)));
+					reverseMap.put(tgt, initArray(key));
 				}
 			}
 		}

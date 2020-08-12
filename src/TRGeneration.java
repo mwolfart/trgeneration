@@ -37,7 +37,9 @@ public class TRGeneration {
 		if (cmd.hasOption("d")) graph.setDebug(true);
 		
 		graph.build();
-		graph.getTestRequirements();
+		graph.PrintGraphStructures();
+		graph.PrintLineFlows();
+		graph.PrintTestRequirements();
 	}
 
 	private static void readSource(String path){
