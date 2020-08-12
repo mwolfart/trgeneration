@@ -1,0 +1,32 @@
+Last changes
+- Support multiple classes and methods.
+- Script will generate one graph for each class. If there is more than one method, multiple disjunct graphs are drawn.
+
+TODOs
+[HIGH]
+- Read each of the graphs and return test requirements (medium/low effort)
+- Print graph connections on terminal (low effort)
+- Get ID of method with parameters (low effort)
+
+[MED/HIGH]
+- For each is not supported (medium-high effort)
+- Classes inside classes are not supported (medium-high effort)
+- Functions inside methods are not supported (medium-high effort)
+- Ternary operator is interpreted as a normal assignment (medium effort)
+
+[MED]
+- Empty lines are still mapped (low effort)
+- Method signature is currently ignored, check if that's correct (?)
+- Some parts of the logic will look for specific words or characters, and do not test if these are inside a string (low-effort)
+- Try catch is not properly mapped (high effort)
+- Functions as variables/objects are not supported (high effort)
+- Logic will not test for all unbalanced objects, like parentheses (medium-high effort) (?)
+- Review code manipulation in cleanup process: some methods might have to come before others (medium effort)
+- Code might fail if there are open/close brackets in the same line (medium/low effort)
+  -- Empty method
+
+[LOW]
+- Source code corresponding to each node is not drawn along with image (high effort)
+- [refactoring] trimLines is called many times in the cleanup process (medium effort)
+- [refactoring] functions that match brackets (medium effort)
+- [refactoring] graphgen loop

@@ -1,11 +1,9 @@
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.Scanner;
 import org.apache.commons.cli.*;
 public class TRGeneration {
 	private static Graph graph;
-	private static TestRequirements tr;
 	
 	public static void main(String[] args) {
 		
@@ -14,8 +12,7 @@ public class TRGeneration {
 		//ex.Test3();
 		//ex.Test4();
 		//ex.Test5();			// Need to work on
-	
-		tr = new TestRequirements();
+
 		graph = new Graph();
 		
 		if (args.length < 1){
@@ -39,25 +36,8 @@ public class TRGeneration {
 		
 		if (cmd.hasOption("d")) graph.setDebug(true);
 		
-		String pngpath = "out.png";
-		if (cmd.hasOption("o")) pngpath = cmd.getOptionValue("o");
-		
 		graph.build();
-		//graph.writePng(pngpath);
-		//graph.PrintNodeLineSrcs();
-		
-		// TODO
-		
-		/*
-		tr.ReadGraph(graph);
-		
-		System.out.println("Test Requirements:\n");
-	
-		tr.PrintNodeCoverage();
-		tr.PrintEdgeCoverage();
-		tr.PrintEdgePairCoverage();
-		tr.PrintPrimePathCoverage();
-		*/		
+		graph.getTestRequirements();
 	}
 
 	private static void readSource(String path){

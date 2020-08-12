@@ -2,17 +2,17 @@ import java.util.*;
 
 
 public class TestRequirements {
-	private Graph graph = null; 
+	private MethodGraph graph = null; 
 	
 	public TestRequirements() {
 		graph = null;
 	}
 	
-	public TestRequirements(Graph _graph) {
+	public TestRequirements(MethodGraph _graph) {
 		graph = _graph;
 	}
 	
-	public void ReadGraph(Graph _graph) {
+	public void ReadGraph(MethodGraph _graph) {
 		graph = _graph;
 	}
 	
@@ -190,7 +190,7 @@ public class TestRequirements {
 		}
 		List<Edge> edgesList1 = graph.GetEdgeStartFrom(_node);
 		Edge edge1 = null, edge2 = null;
-		Node node1 = null, node2 = null;
+		Node node1 = null;
 		boolean skip = false;
 		EdgePair ep1 = null, ep2 = null;
 		for(int i = 0; i < edgesList1.size(); i++) {
