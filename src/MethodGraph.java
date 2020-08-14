@@ -132,6 +132,7 @@ public class MethodGraph {
 		return null;
 	}
 	
+	/*
 	public void fixNodeNumbers(int nextNodeId) {
 		for(int i=0; i<nodes.size(); i++) {
 			nodes.get(i).SetNodeNumber(nodes.get(i).GetNodeNumber() + nextNodeId);
@@ -140,6 +141,7 @@ public class MethodGraph {
 			edges.get(i).SetValues(edges.get(i).GetStart() + nextNodeId, edges.get(i).GetEnd() + nextNodeId);
 		}
 	}
+	*/
 	
 	public void fixLineNumbers(int incAmount) {
 		for(int i=0; i<nodes.size(); i++) {
@@ -185,20 +187,18 @@ public class MethodGraph {
 	}
 	
 	public void PrintGraphStructure(List<Map<Integer, List<Integer>>> mappings) {
-		Iterator<Node> iterator = nodes.iterator();
-		Node node;
-		while(iterator.hasNext()) {
-			node = iterator.next();
+		for (Node node : nodes) {
 			System.out.println("Printing source code present in node #" + node.GetNodeNumber() + "...");
 			String unifiedLines = node.GetSrcLine();
 			String[] lines = unifiedLines.split("\n");
+			
 			for(int i=0; i < lines.length ; i++) {
 				String line = lines[i];
-				line = line.replace("%forcenode%", "[FOR component] ");
+				line.replace("%forcenode%", "[FOR component] ");
 				Integer curLineId = node.GetSrcLineIdx() + i;
 				List<Integer> originalLines = mappings.get(mappings.size()-1).get(curLineId);
 				for(int j=0; j<originalLines.size(); j++) {
-					originalLines.set(j, originalLines.get(j)+2); // TODO why the f* do I have to increment 2 and not 1?
+					originalLines.set(j, originalLines.get(j)+1);
 				}
 				System.out.println(" - Code `" + line + "` originally present at line(s) " + 
 						originalLines);
@@ -209,7 +209,7 @@ public class MethodGraph {
 	}
 	
 	public void PrintLineFlow(List<Map<Integer, List<Integer>>> mappings) {
-		System.out.println("Printing line flow for class " + className + " method " + methodName + "...\n");
+		System.out.println("Printing line flow for class " + className + " method " + methodName + "...");
 		PrintNodeLineFlow(0, mappings, new ArrayList<Integer>());
 		System.out.println("\n");
 	}
@@ -221,10 +221,9 @@ public class MethodGraph {
 		for(int i=0; i < lines.length ; i++) {
 			Integer curLineId = node.GetSrcLineIdx() + i;
 			List<Integer> originalLines = mappings.get(mappings.size()-1).get(curLineId);
-			// TODO why shouldnt I increment?
-
-			System.out.print(originalLines);
 			
+			// TODO why shouldn't I increment 1?
+			System.out.print(originalLines);
 			if (i != lines.length -1) {
 				System.out.print(" -> ");
 			}
@@ -240,11 +239,12 @@ public class MethodGraph {
 		if (targetNodes.size() > 1) {
 			System.out.print(" -> (");
 			
-			for(int target : targetNodes) {
-				PrintNodeLineFlow(target, mappings, visitedNodes);
-				System.out.print(" ; ");
+			for(int i=0; i < targetNodes.size(); i++) {
+				PrintNodeLineFlow(targetNodes.get(i), mappings, visitedNodes);
+				if (i < targetNodes.size()-1) 
+					System.out.print(" ; ");
 			}
-			System.out.print(") ");
+			System.out.print(")");
 		} else if (targetNodes.size() == 1) {
 			System.out.print(" -> ");
 			PrintNodeLineFlow(targetNodes.get(0), mappings, visitedNodes);
