@@ -87,7 +87,7 @@ public class Graph {
 				MethodGraph methodGraph = new MethodGraph(methodName, className, methodBody, printDebug);
 				
 				methodGraph.computeNodes();
-				methodGraph.fixLineNumbers(methodBlockStart+1);
+				methodGraph.fixLineNumbers(methodBlockStart+1, lineMappings);
 				/*
 				nextNodeId = methodGraph.getAmountOfNodes();
 				methodGraph.fixNodeNumbers(nextNodeId);

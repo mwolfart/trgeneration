@@ -143,9 +143,10 @@ public class MethodGraph {
 	}
 	*/
 	
-	public void fixLineNumbers(int incAmount) {
+	public void fixLineNumbers(int incAmount, List<Map<Integer, List<Integer>>> mappings) {
 		for(int i=0; i<nodes.size(); i++) {
 			nodes.get(i).SetSrcLineIdx(nodes.get(i).GetSrcLineIdx()+incAmount);
+			nodes.get(i).fixLinesIndex(mappings);
 		}
 	}
 	

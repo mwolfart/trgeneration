@@ -7,6 +7,7 @@ import java.util.List;
 
 public class SimplePathList {
 	protected List<SimplePath> spl;
+	private boolean printAsLines = false;
 	
 	public SimplePathList() {
 		spl = new LinkedList<SimplePath>();
@@ -37,6 +38,10 @@ public class SimplePathList {
 	
 	public int size() {
 		return spl.size();
+	}
+	
+	public void setLineMode() {
+		printAsLines = true;
 	}
 	
 //	public String toString() {
@@ -71,8 +76,22 @@ public class SimplePathList {
 		String res = "";
 		for(int i = 0; i < spl.size(); i++) {
 			sp = spl.get(i);
-			res += sp + " ";
+			
+			if (printAsLines) {
+				List<Node> nodeList = sp.GetNodes();
+				
+				res += "[" + (nodeList.get(0).GetLastLineId()+1) + ", ";
+				for(int j = 1; j < nodeList.size()-1; j++) {
+					for(Integer n : nodeList.get(j).GetSrcLinesIndex()) {
+						res += (n+1) + ", ";
+					}
+				}
+				res += (nodeList.get(nodeList.size()-1).GetSrcLinesIndex().get(0)+1) + "] ";
+			} else {
+				res += sp + " ";
+			}
 		}
+		
 		return res;
 	}
 	

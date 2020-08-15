@@ -266,6 +266,7 @@ public class TestRequirements {
 		//System.out.println("1st Prime Path TR: " + ppl);
 		ppl.RemoveSubPath();
 		//System.out.println("Final Prime Path TR: ");
+		ppl.setLineMode();
 		System.out.println(ppl);
 	}
 	

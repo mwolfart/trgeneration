@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -13,7 +14,7 @@ public class Node {
 	private int edgesFrom;
 	private int edgesTo;
 	
-	private List<Integer> srcLinesIndex;
+	private List<Integer> srcLinesIndex = new ArrayList<Integer>();
 	
 	public Node(){}
 	
@@ -30,7 +31,7 @@ public class Node {
 		srcline = _srcline;
 		isEntry = _isEntry;
 		isExit = _isExit;
-		srcLinesIndex = new ArrayList<>();
+		srcLinesIndex = new ArrayList<Integer>();
 	}
 	
 	public void SetSrcLineIdx(int idx){	srcLineIdx=idx;	}
@@ -68,5 +69,18 @@ public class Node {
 	
 	public int getNumLines() {
 		return StringUtils.countMatches(srcline, '\n') + 1;
+	}
+	
+	public int GetLastLineId() {
+		return (srcLinesIndex.size() > 0 ? srcLinesIndex.get(srcLinesIndex.size() - 1) : srcLineIdx);
+	}
+	
+	public void fixLinesIndex(List<Map<Integer, List<Integer>>> mappings) {
+		for(int i = srcLineIdx; i < srcLineIdx+getNumLines(); i++) {
+			List<Integer> tgtLines = mappings.get(mappings.size()-1).get(i);
+			for(int tgt : tgtLines) {
+				srcLinesIndex.add(tgt);
+			}
+		}
 	}
 }
