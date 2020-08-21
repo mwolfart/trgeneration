@@ -147,16 +147,11 @@ public class Graph {
 		}
 	}
 	
-	/* TODO: Use thing method in all functions that look for specific characters or words */
-	private boolean lineContainsReservedWord(String line, String word) {
-		return line.matches(".*\\b"+word+"\\b(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$).*");
-	}
-	
 	/* TODO: Support class inside classes */
 	private List<Pair<Integer, Integer>> getClassesBlocks() {
 		List<Pair<Integer, Integer>> classesBlocks = new ArrayList<Pair<Integer, Integer>>();
 		for (int i=0; i<sourceCode.size(); i++) {
-			if (lineContainsReservedWord(sourceCode.get(i), "class")) {
+			if (Helper.lineContainsReservedWord(sourceCode.get(i), "class")) {
 				int start = i;
 				int end = findEndOfBlock(i+1); // TODO might be problem if { } is in same line
 				classesBlocks.add(new ImmutablePair<Integer, Integer>(start, end));
@@ -170,7 +165,7 @@ public class Graph {
 	private List<Pair<Integer, Integer>> getMethodBlocks(int classStartLineId, int classEndLineId) {
 		List<Pair<Integer, Integer>> methodBlocks = new ArrayList<Pair<Integer, Integer>>();
 		for (int i=classStartLineId; i<classEndLineId; i++) {
-			if (lineContainsReservedWord(sourceCode.get(i), "(private|protected|public)")
+			if (Helper.lineContainsReservedWord(sourceCode.get(i), "(private|protected|public)")
 					&& sourceCode.get(i).matches(".*\\(.*\\)[ \t]*\\{$")) {
 				int start = i;
 				int end = findEndOfBlock(i+1);
@@ -346,7 +341,7 @@ public class Graph {
 			targetLinesIds.add(i);
 			
 			// find brace and check if there is code after
-			int idx = sourceCode.get(i).indexOf("{");
+			int idx = Helper.getIndexOfReservedString(sourceCode.get(i), "{");
 			boolean hasCodeAfterBrace = (idx > -1 
 					&& idx < sourceCode.get(i).length()-1);
 			
@@ -379,7 +374,7 @@ public class Graph {
 					mapping.get(oldLineId) : new ArrayList<Integer>());
 			targetLinesIds.add(i);
 			
-			int idx = sourceCode.get(i).indexOf("}"); 
+			int idx = Helper.getIndexOfReservedString(sourceCode.get(i), "}"); 
 			if (idx > 1) { //this means the } is not starting a line
 				String trailing = sourceCode.get(i).substring(idx);
 				String preceding = sourceCode.get(i).substring(0, idx);
@@ -409,7 +404,7 @@ public class Graph {
 					mapping.get(oldLineId) : new ArrayList<Integer>());
 			targetLinesIds.add(i);
 			
-			int idx = sourceCode.get(i).indexOf("}"); 
+			int idx = Helper.getIndexOfReservedString(sourceCode.get(i), "}"); 
 			if (idx > -1 && sourceCode.get(i).length() > 1) { //this means there is text after the {
 				String trailing = sourceCode.get(i).substring(idx+1);
 				String preceding = sourceCode.get(i).substring(0, idx+1);
@@ -468,11 +463,12 @@ public class Graph {
 			mapping.put(i+removedLines, initArray(i));
 			String curLine = sourceCode.get(i);
 			
-			while (!curLine.contains(";") 
-					&& !curLine.contains("{") 
-					&& !curLine.contains("}")
-					&& !((curLine.contains("case") || curLine.contains("default"))
-							&& curLine.contains(":"))
+			// FIXME
+			while (!Helper.lineContainsReservedChar(curLine, ";")
+					&& !Helper.lineContainsReservedChar(curLine, "{") 
+					&& !Helper.lineContainsReservedChar(curLine, "}")
+					&& !((Helper.lineContainsReservedWord(curLine, "case") || Helper.lineContainsReservedWord(curLine, "default"))
+							&& Helper.lineContainsReservedChar(curLine, ":"))
 					){
 				String separator = (curLine.charAt(curLine.length()-1) != ' '
 									&& sourceCode.get(i+1).charAt(0) != ' ' ? " " : "");
@@ -502,8 +498,8 @@ public class Graph {
 			targetLinesIds.add(i);
 			mapping.put(oldLineId, targetLinesIds);
 			
-			if (sourceCode.get(i).matches("[case|default].*:.*")){
-				int idx = sourceCode.get(i).indexOf(":");
+			if (sourceCode.get(i).matches("^[\\bcase\\b|\\bdefault\\b].*:.*")){
+				int idx = Helper.getIndexOfReservedString(sourceCode.get(i), ":"); // TODO test if it works in all situations
 				
 				if (sourceCode.get(i).substring(idx+1).matches("[ \t]*\\{[ \t]*")) {
 					continue;
@@ -532,13 +528,13 @@ public class Graph {
 				
 				//move the initialization before the loop
 				mapping.put(i+depth, initArray(i));
-				int idx = sourceCode.get(i).indexOf("(");
+				int idx = Helper.getIndexOfReservedString(sourceCode.get(i), "(");
 				sourceCode.add(i, "%forcenode%" + sourceCode.get(i).substring(idx+1));
 				i++; //adjust for insertion
 				
 				//move the iterator to just before the close
 				mapping.put(i+1+depth, initArray(closingLine-1));
-				idx = sourceCode.get(i+2).indexOf(")");
+				idx = Helper.getIndexOfReservedString(sourceCode.get(i+2), ")");
 				sourceCode.add(closingLine+1, "%forcenode%" + sourceCode.get(i+2).substring(0, idx) + ";");
 				sourceCode.remove(i+2); //remove old line
 				
@@ -656,11 +652,11 @@ public class Graph {
 		
 		while (curLineId >= 0 && openingLine == -1) {
 			String curLine = sourceCode.get(curLineId);
-			if (curLine.contains("}")) {
+			if (Helper.lineContainsReservedChar(curLine, "}")) {
 				depth++;
-			} else if (curLine.contains("{") && depth > 0) {
+			} else if (Helper.lineContainsReservedChar(curLine, "{") && depth > 0) {
 				depth--;
-			} else if (curLine.contains("{")) {
+			} else if (Helper.lineContainsReservedChar(curLine, "{")) {
 				openingLine = curLineId;
 			}
 			curLineId--;
@@ -682,11 +678,11 @@ public class Graph {
 		
 		while (curLineId < sourceCode.size() && closingLine == -1) {
 			String curLine = sourceCode.get(curLineId);
-			if (curLine.contains("{")) {
+			if (Helper.lineContainsReservedChar(curLine, "{")) {
 				depth++;
-			} else if (curLine.contains("}") && depth > 0) {
+			} else if (Helper.lineContainsReservedChar(curLine, "}") && depth > 0) {
 				depth--;
-			} else if (curLine.contains("}")) {
+			} else if (Helper.lineContainsReservedChar(curLine, "}")) {
 				closingLine = curLineId;
 			}
 			curLineId++;
@@ -709,11 +705,11 @@ public class Graph {
 		for (int i=0; i<sourceCode.size(); i++){
 			String line = sourceCode.get(i);
 			
-			if (line.matches("}")){
+			if (Helper.lineContainsReservedChar(line, "}")){
 				//find the opening
 				int openline = findStartOfBlock(i-1);
-				
-				if (sourceCode.get(openline).toLowerCase().matches("^(while|do).*")
+
+				if (sourceCode.get(openline).toLowerCase().matches("^(\\bwhile\\b|\\bdo\\b).*")
 						&& sourceCode.get(i-1).equals("}")) {
 					sourceCode.add(i, "dummy_node;");
 					numAddedLines++;

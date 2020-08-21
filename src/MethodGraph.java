@@ -285,8 +285,8 @@ public class MethodGraph {
 				int openline = findStartOfBlock(i-1, true);
 				
 				//for loops, add an edge back to the start
-				if (methodLines.get(openline).toLowerCase().matches("^(for|while|do).*")){
-					if (methodLines.get(openline).toLowerCase().matches("^(for|while).*")){
+				if (methodLines.get(openline).toLowerCase().matches("^(\\bfor\\b|\\bwhile\\b|\\bdo\\b).*")){
+					if (methodLines.get(openline).toLowerCase().matches("^(\\bfor\\b|\\bwhile\\b).*")){
 						addEdge(getPrevLine(i),openline);	
 						addEdge(openline,getNextLine(i));
 					}
@@ -298,11 +298,11 @@ public class MethodGraph {
 				}
 				
 				//for conditionals, we won't add edges until after the block.  Then link all the close braces to the end of the block
-				else if (methodLines.get(openline).toLowerCase().matches("^(if|else if).*")){
-					if (methodLines.get(openline).toLowerCase().matches("^if.*")) conditionalStartLine = openline;
+				else if (methodLines.get(openline).toLowerCase().matches("^(\\bif\\b|\\belse if\\b).*")){
+					if (methodLines.get(openline).toLowerCase().matches("^\\bif\\b.*")) conditionalStartLine = openline;
 					addEdge(conditionalStartLine,openline+1);
 					//if we're not done with the conditional block, save the start of this edge until we find the end of the block
-					if (methodLines.size() > i+1 && methodLines.get(i+1).toLowerCase().matches("^else.*")){
+					if (methodLines.size() > i+1 && methodLines.get(i+1).toLowerCase().matches("^\\belse\\b.*")){
 						
 						edgeStartLines.add(getPrevLine(i));						
 					}
@@ -328,15 +328,15 @@ public class MethodGraph {
 					}
 					edgeStartLines.clear();
 				}
-				else if (methodLines.get(openline).toLowerCase().matches("^switch.*")){
+				else if (methodLines.get(openline).toLowerCase().matches("^\\bswitch\\b.*")){
 
 					//add edges to cases
 					for (int k=openline; k<i; k++){ //iterate through the case statement
-						if (methodLines.get(k).matches("^(case|default).*")){
+						if (methodLines.get(k).matches("^(\\bcase\\b|\\bdefault\\b).*")){
 							if (methodLines.get(k).matches(":$")) addEdge(openline,k);
 							else addEdge(openline,getNextLine(k));  //didnt't split lines at : so could be the next line
 						}
-						if (methodLines.get(k).matches("^break;")) addEdge(k,getNextLine(i));
+						if (methodLines.get(k).matches("^\\bbreak\\b;")) addEdge(k,getNextLine(i));
 					}
 				}
 			}
@@ -345,9 +345,9 @@ public class MethodGraph {
 				//TODO REMOVE AND CHECK IF IT CREATES SEPARATE NODES
 				
 				//we'll add a node and an edge unless these are not executable lines
-				if (!methodLines.get(i).toLowerCase().matches("^(do|else|case|default).*")){
+				if (!methodLines.get(i).toLowerCase().matches("^(\\bdo\\b|\\belse\\b|\\bcase\\b|\\bdefault\\b).*")){
 					addNode(line,i);
-					if (i>0 && !methodLines.get(getPrevLine(i)).toLowerCase().matches("^(do|else|case|default).*") && !methodLines.get(i-1).equals("}")){
+					if (i>0 && !methodLines.get(getPrevLine(i)).toLowerCase().matches("^(\\bdo\\b|\\belse\\b|\\bcase\\b|\\bdefault\\b).*") && !methodLines.get(i-1).equals("}")){
 						addEdge(getPrevLine(i), i);
 					}
 					
@@ -369,7 +369,7 @@ public class MethodGraph {
 		
 		//fix any returns before the last line
 		for (int i=0; i<nodes.size(); i++) {
-			if (nodes.get(i).GetSrcLine().contains("return")) {
+			if (Helper.lineContainsReservedWord(nodes.get(i).GetSrcLine(), "return")) {
 				//mark node as an exit node
 				Node n = nodes.get(i);
 				n.SetExit(true);
