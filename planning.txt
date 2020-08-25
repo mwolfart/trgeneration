@@ -4,20 +4,21 @@ Last changes
 
 TODOs
 [HIGH]
+- ELSE IF is not working properly
+- Class name not being collected properly
 - Store parameters along with methods (low effort)
-- Assure line flow is correct (low-medium effort)
-- Fix for mapping
+- "double" is recognized as "do"
+- Some parts of the logic will look for specific words or characters, and do not test if these are inside a string (low-effort)
 
 [MED/HIGH]
 - For each is not supported (medium-high effort)
+- do/while is not supported (medium-high effort) (convert to while() {})
 - Classes inside classes are not supported (medium-high effort)
 - Functions inside methods are not supported (medium-high effort)
 - Ternary operator is interpreted as a normal assignment (medium effort)
-- "double" is recognized as "do"
 
 [MED]
 - Method signature is currently ignored, check if that's correct (?)
-- Some parts of the logic will look for specific words or characters, and do not test if these are inside a string (low-effort)
 - Try catch is not properly mapped (high effort)
 - Functions as variables/objects are not supported (high effort)
 - Logic will not test for all unbalanced objects, like parentheses (medium-high effort) (?)

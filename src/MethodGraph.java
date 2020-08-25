@@ -285,8 +285,8 @@ public class MethodGraph {
 				int openline = findStartOfBlock(i-1, true);
 				
 				//for loops, add an edge back to the start
-				if (methodLines.get(openline).toLowerCase().matches("^(\\bfor\\b|\\bwhile\\b|\\bdo\\b).*")){
-					if (methodLines.get(openline).toLowerCase().matches("^(\\bfor\\b|\\bwhile\\b).*")){
+				if (methodLines.get(openline).toLowerCase().matches("^\\b(for|while|do)\\b.*")){
+					if (methodLines.get(openline).toLowerCase().matches("^\\b(for|while)\\b.*")){
 						addEdge(getPrevLine(i),openline);	
 						addEdge(openline,getNextLine(i));
 					}
@@ -298,13 +298,13 @@ public class MethodGraph {
 				}
 				
 				//for conditionals, we won't add edges until after the block.  Then link all the close braces to the end of the block
-				else if (methodLines.get(openline).toLowerCase().matches("^(\\bif\\b|\\belse if\\b).*")){
+				else if (methodLines.get(openline).toLowerCase().matches("^\\b(if|else if)\\b.*")){
 					if (methodLines.get(openline).toLowerCase().matches("^\\bif\\b.*")) conditionalStartLine = openline;
 					addEdge(conditionalStartLine,openline+1);
 					//if we're not done with the conditional block, save the start of this edge until we find the end of the block
 					if (methodLines.size() > i+1 && methodLines.get(i+1).toLowerCase().matches("^\\belse\\b.*")){
-						
-						edgeStartLines.add(getPrevLine(i));						
+						// FIXME
+						edgeStartLines.add(getPrevLine(i));
 					}
 					else{
 						for (Integer start: edgeStartLines){
@@ -332,7 +332,7 @@ public class MethodGraph {
 
 					//add edges to cases
 					for (int k=openline; k<i; k++){ //iterate through the case statement
-						if (methodLines.get(k).matches("^(\\bcase\\b|\\bdefault\\b).*")){
+						if (methodLines.get(k).matches("^\\b(case|default)\\b.*")){
 							if (methodLines.get(k).matches(":$")) addEdge(openline,k);
 							else addEdge(openline,getNextLine(k));  //didnt't split lines at : so could be the next line
 						}
@@ -345,9 +345,9 @@ public class MethodGraph {
 				//TODO REMOVE AND CHECK IF IT CREATES SEPARATE NODES
 				
 				//we'll add a node and an edge unless these are not executable lines
-				if (!methodLines.get(i).toLowerCase().matches("^(\\bdo\\b|\\belse\\b|\\bcase\\b|\\bdefault\\b).*")){
+				if (!methodLines.get(i).toLowerCase().matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*")){
 					addNode(line,i);
-					if (i>0 && !methodLines.get(getPrevLine(i)).toLowerCase().matches("^(\\bdo\\b|\\belse\\b|\\bcase\\b|\\bdefault\\b).*") && !methodLines.get(i-1).equals("}")){
+					if (i>0 && !methodLines.get(getPrevLine(i)).toLowerCase().matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*") && !methodLines.get(i-1).equals("}")){
 						addEdge(getPrevLine(i), i);
 					}
 					
@@ -595,11 +595,11 @@ public class MethodGraph {
 		
 		while (curLineId >= 0 && openingLine == -1) {
 			String curLine = methodLines.get(curLineId);
-			if (curLine.contains("}")) {
+			if (Helper.lineContainsReservedChar(curLine, "}")) {
 				depth++;
-			} else if (curLine.contains("{") && depth > 0) {
+			} else if (Helper.lineContainsReservedChar(curLine, "{") && depth > 0) {
 				depth--;
-			} else if (curLine.contains("{")) {
+			} else if (Helper.lineContainsReservedChar(curLine, "{")) {
 				openingLine = curLineId;
 			}
 			curLineId--;
