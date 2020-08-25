@@ -299,11 +299,16 @@ public class MethodGraph {
 				
 				//for conditionals, we won't add edges until after the block.  Then link all the close braces to the end of the block
 				else if (methodLines.get(openline).toLowerCase().matches("^\\b(if|else if)\\b.*")){
-					if (methodLines.get(openline).toLowerCase().matches("^\\bif\\b.*")) conditionalStartLine = openline;
-					addEdge(conditionalStartLine,openline+1);
+					if (methodLines.get(openline).toLowerCase().matches("^\\bif\\b.*")) {
+						conditionalStartLine = openline;
+						addEdge(conditionalStartLine,openline+1);
+					} else {
+						addEdge(conditionalStartLine,openline);
+						addEdge(openline,openline+1);
+						conditionalStartLine = openline;
+					}
 					//if we're not done with the conditional block, save the start of this edge until we find the end of the block
 					if (methodLines.size() > i+1 && methodLines.get(i+1).toLowerCase().matches("^\\belse\\b.*")){
-						// FIXME
 						edgeStartLines.add(getPrevLine(i));
 					}
 					else{
