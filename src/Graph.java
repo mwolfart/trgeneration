@@ -1,5 +1,6 @@
 import java.util.*;
 
+import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -188,9 +189,13 @@ public class Graph {
 		
 		while (idx < line.length() && end == -1) {
 			if(line.charAt(idx) == '{') 
-				end = idx;
+				end = idx-1;
 			idx++;
 		}
+		
+		// ignore trailing spaces
+		while (line.charAt(end) == ' ' || line.charAt(end) == '\t')
+			end--;
 		
 		if (end == -1){
 			System.err.println("Invalid class name");
@@ -198,7 +203,7 @@ public class Graph {
 			System.exit(2);
 		}
 		
-		return line.substring(start, end-1);
+		return line.substring(start, end+1);
 	}
 	
 	private String getMethodNameFromLineId(int lineId) {
@@ -213,7 +218,7 @@ public class Graph {
 				foundName = true;
 				end = idx;
 			}
-			if(foundName && line.charAt(idx) == ' ') 
+			if (foundName && line.charAt(idx) == ' ') 
 				start = idx+1;
 			idx--;
 		}
@@ -519,18 +524,17 @@ public class Graph {
 		for (int i=0; i<sourceCode.size(); i++){			
 			if (sourceCode.get(i).matches("^for.+$")){
 				int depth = loopsClosingLines.size();
-				
 				int closingLine = findEndOfBlock(i+3);
 				
 				//move the initialization before the loop
 				mapping.put(i+depth, initArray(i));
-				int idx = Helper.getIndexOfReservedChar(sourceCode.get(i), "(");
+				int idx = sourceCode.get(i).indexOf("(");
 				sourceCode.add(i, "%forcenode%" + sourceCode.get(i).substring(idx+1));
 				i++; //adjust for insertion
 				
 				//move the iterator to just before the close
 				mapping.put(i+1+depth, initArray(closingLine-1));
-				idx = Helper.getIndexOfReservedChar(sourceCode.get(i+2), ")");
+				idx = sourceCode.get(i+2).lastIndexOf(")");
 				sourceCode.add(closingLine+1, "%forcenode%" + sourceCode.get(i+2).substring(0, idx) + ";");
 				sourceCode.remove(i+2); //remove old line
 				
@@ -552,6 +556,55 @@ public class Graph {
 		}
 		
 		lineMappings.add(mapping);
+	}
+	
+	private void convertForEachToFor() {
+		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
+		int addedLines = 0;
+		
+		for (int i=0; i<sourceCode.size(); i++){			
+			if (sourceCode.get(i).matches("^for.+$")
+					&& Helper.lineContainsReservedChar(sourceCode.get(i), ":")) {
+				List<String> forEachInformation = extractForEachInfo(sourceCode.get(i));
+				String type = forEachInformation.get(0);
+				String varName = forEachInformation.get(1);
+				String setName = forEachInformation.get(2);
+				
+				mapping.put(i - addedLines, new ArrayList<>(Arrays.asList(i, i+1)));
+				sourceCode.set(i, "for (Iterator<" + type + "> it = " + setName + ".iterator(); it.hasNext(); ){");
+				sourceCode.add(i+1, type + " " + varName + " = it.next();");
+				addedLines++;
+				i++;
+			} else {
+				mapping.put(i - addedLines, initArray(i));
+			}
+		}
+		
+		lineMappings.add(mapping);
+	}
+	
+	// given a line containing a for each statement, collect the necessary info
+	private List<String> extractForEachInfo(String line) {
+		String buffer = "";
+		List<String> info = new ArrayList<>();
+		
+		int i;
+		for(i = 3; i < line.length() && info.size() < 2; i++) {
+			if (line.charAt(i) != '(' && line.charAt(i) != ' ' && line.charAt(i) != '\t') {
+				buffer += line.charAt(i);
+			} else if ((line.charAt(i) == ' ' || line.charAt(i) == '\t') && buffer.length() > 0) {
+				info.add(buffer);
+				buffer = "";
+			}
+		}
+		
+		while (line.charAt(i) == ':' || line.charAt(i) == ' ' || line.charAt(i) == '\t') i++;
+		int start = i;
+		int end = line.length() - 1;
+		while (line.charAt(end) == '{' || line.charAt(end) == ' ' || line.charAt(end) == '\t') end--;
+		info.add(line.substring(start, end));
+		
+		return info;
 	}
 	
 	//given line id and depth, find its last id in final source code
@@ -622,11 +675,12 @@ public class Graph {
 		trimLines();
 		// At this point, all opening braces end a line and all closing braces are on their own line;
 
+		convertForEachToFor();
+		trimLines();
 		separateLinesWithSemicolons();
 		trimLines();
 		combineMultiLineStatements();
 		trimLines();
-		// convertForEachToFor();
 		convertForToWhile();
 		trimLines();
 		separateCaseStatements();
