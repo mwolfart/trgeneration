@@ -209,49 +209,55 @@ public class MethodGraph {
 		System.out.println("=========\n");
 	}
 	
-	public void PrintLineFlow(List<Map<Integer, List<Integer>>> mappings) {
+	public void PrintLineFlow(List<Map<Integer, List<Integer>>> mappings, List<Integer> ignoredLines) {
 		System.out.println("Printing line flow for class " + className + " method " + methodName + "...");
-		PrintNodeLineFlow(0, mappings, new ArrayList<Integer>());
+		String lineFlow = getNodeLineFlow(0, mappings, new ArrayList<Integer>());
+		String lineFlowClean = cleanLineFlow(lineFlow, ignoredLines);
+		System.out.println(lineFlowClean);
 		System.out.println("\n");
 	}
 	
-	private void PrintNodeLineFlow(int nodeNumber, List<Map<Integer, List<Integer>>> mappings, List<Integer> visitedNodes) {			
+	private String getNodeLineFlow(int nodeNumber, List<Map<Integer, List<Integer>>> mappings, List<Integer> visitedNodes) {			
 		Node node = nodes.get(nodeNumber); // todo check if node id = node position in array
 		String unifiedLines = node.GetSrcLine();
 		String[] lines = unifiedLines.split("\n");
+		String result = "";
+
+		if(visitedNodes.contains(nodeNumber)) {
+			result += "<loop>";
+			return result;
+		}
+		visitedNodes.add(nodeNumber);
+		
 		for(int i=0; i < lines.length ; i++) {
 			Integer curLineId = node.GetSrcLineIdx() + i;
 			List<Integer> originalLines = mappings.get(mappings.size()-1).get(curLineId);
 			
 			// TODO why shouldn't I increment 1?
-			System.out.print(originalLines);
+			result += originalLines;
 			if (i != lines.length -1) {
-				System.out.print(" -> ");
+				result += " -> ";
 			}
 		}
-		
-		if(visitedNodes.contains(nodeNumber)) {
-			System.out.print("[loop]");
-			return;
-		}
-		visitedNodes.add(nodeNumber);
 		
 		List<Integer> targetNodes = getTargetsOfNode(nodeNumber);
 		if (targetNodes.size() > 1) {
-			System.out.print(" -> (");
+			result += " -> (";
 			
 			for(int i=0; i < targetNodes.size(); i++) {
-				PrintNodeLineFlow(targetNodes.get(i), mappings, visitedNodes);
+				result += getNodeLineFlow(targetNodes.get(i), mappings, visitedNodes);
 				if (i < targetNodes.size()-1) 
-					System.out.print(" ; ");
+					result += " ; ";
 			}
-			System.out.print(")");
+			result += ")";
 		} else if (targetNodes.size() == 1) {
-			System.out.print(" -> ");
-			PrintNodeLineFlow(targetNodes.get(0), mappings, visitedNodes);
+			result += " -> ";
+			result += getNodeLineFlow(targetNodes.get(0), mappings, visitedNodes);
 		} else {
-			System.out.print("[end]");
+			result += " <end>";
 		}
+		
+		return result;
 	}
 	
 	private List<Integer> getTargetsOfNode(int src) {
@@ -262,6 +268,32 @@ public class MethodGraph {
 			}
 		}
 		return targets;
+	}
+	
+	private String cleanLineFlow(String lineFlow, List<Integer> ignoredLines) {
+		lineFlow = lineFlow.replace(",", " ->");
+		lineFlow = lineFlow.replace("[", "");
+		lineFlow = lineFlow.replace("]", "");
+		String[] items = lineFlow.split(" -> ");
+		
+		for(int i = 0; i < items.length; i++) {
+			// FIXME
+			int lineNo = Helper.parseInt(items[i]);
+			if (ignoredLines.contains(lineNo)) {
+				items[i] = "";
+			}
+		}
+		
+		for(int i = 0; i < items.length - 1; i++) {
+			if (items[i].equals(items[i+1])) {
+				items[i] = "";
+			}
+		}
+		
+		lineFlow = String.join(" -> ", items);
+		lineFlow = lineFlow.replace("->  ->", "->");
+		
+		return lineFlow;
 	}
 	
 	private void getNodes(){

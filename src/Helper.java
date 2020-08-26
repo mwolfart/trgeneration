@@ -37,4 +37,13 @@ public class Helper {
 		int match = (m.find() ? m.start() : -1);
 		return match;
 	}
+	
+	public static int parseInt(String strInt) {
+		int result = -1;
+		try {
+			Integer.parseInt(strInt);
+		} catch(NumberFormatException e) {
+		}
+		return result;
+	}
 }

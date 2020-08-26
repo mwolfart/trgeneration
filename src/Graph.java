@@ -10,6 +10,7 @@ public class Graph {
 	private List<String> sourceCode;
 	private List<MethodGraph> methodGraphs;
 	private List<Integer> emptyLines;
+	private List<Integer> ignoredLines;
 	
 	private List<Map<Integer, List<Integer>>> lineMappings = new ArrayList<Map<Integer, List<Integer>>>();
 	
@@ -19,6 +20,7 @@ public class Graph {
 		sourceCode = new ArrayList<String>();	
 		methodGraphs = new ArrayList<MethodGraph>();
 		emptyLines = new ArrayList<Integer>();
+		ignoredLines = new ArrayList<Integer>();
 		printDebug = false;
 	}
 	
@@ -140,7 +142,7 @@ public class Graph {
 	
 	public void PrintLineFlows() {
 		for(MethodGraph graph : methodGraphs) {
-			graph.PrintLineFlow(lineMappings);
+			graph.PrintLineFlow(lineMappings, ignoredLines);
 		}
 	}
 	
@@ -319,6 +321,7 @@ public class Graph {
 				mapping.put(oldLineId, initArray(i-1)); 
 				numRemovedLines++;
 				
+				ignoredLines.add(oldLineId);
 				sourceCode.remove(i);
 				i--;
 			} else {

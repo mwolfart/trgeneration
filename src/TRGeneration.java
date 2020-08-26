@@ -23,6 +23,9 @@ public class TRGeneration {
 		Options options = new Options();
 		options.addOption("d", false, "Print debug output"); // does not have a value
 		options.addOption("o", true, "PNG output path"); // does not have a value
+		options.addOption("g", false, "Print graph structures");
+		options.addOption("l", false, "Print line flows");
+		options.addOption("t", false, "Print test requirements");
  		
 		CommandLineParser parser = new BasicParser();
 		CommandLine cmd = null;
@@ -37,9 +40,9 @@ public class TRGeneration {
 		if (cmd.hasOption("d")) graph.setDebug(true);
 		
 		graph.build();
-		graph.PrintGraphStructures();
-		graph.PrintLineFlows();
-		graph.PrintTestRequirements();
+		if (cmd.hasOption("g")) graph.PrintGraphStructures();
+		if (cmd.hasOption("l")) graph.PrintLineFlows();
+		if (cmd.hasOption("t")) graph.PrintTestRequirements();
 	}
 
 	private static void readSource(String path){
