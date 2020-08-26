@@ -46,4 +46,12 @@ public class Helper {
 		}
 		return result;
 	}
+	
+	public static List<Integer> incOneToAll(List<Integer> items) {
+		List<Integer> newlist = new ArrayList<>();
+		for(Integer item : items) {
+			newlist.add(item + 1);
+		}
+		return newlist;
+	}
 }

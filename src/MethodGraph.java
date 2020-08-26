@@ -197,10 +197,7 @@ public class MethodGraph {
 				String line = lines[i];
 				line.replace("%forcenode%", "[FOR component] ");
 				Integer curLineId = node.GetSrcLineIdx() + i;
-				List<Integer> originalLines = mappings.get(mappings.size()-1).get(curLineId);
-				for(int j=0; j<originalLines.size(); j++) {
-					originalLines.set(j, originalLines.get(j)+1);
-				}
+				List<Integer> originalLines = Helper.incOneToAll(mappings.get(mappings.size()-1).get(curLineId));
 				System.out.println(" - Code `" + line + "` originally present at line(s) " + 
 						originalLines);
 			}
@@ -209,10 +206,10 @@ public class MethodGraph {
 		System.out.println("=========\n");
 	}
 	
-	public void PrintLineFlow(List<Map<Integer, List<Integer>>> mappings, List<Integer> ignoredLines) {
+	public void PrintLineFlow(List<Map<Integer, List<Integer>>> mappings) {
 		System.out.println("Printing line flow for class " + className + " method " + methodName + "...");
 		String lineFlow = getNodeLineFlow(0, mappings, new ArrayList<Integer>());
-		String lineFlowClean = cleanLineFlow(lineFlow, ignoredLines);
+		String lineFlowClean = cleanLineFlow(lineFlow);
 		System.out.println(lineFlowClean);
 		System.out.println("\n");
 	}
@@ -231,9 +228,8 @@ public class MethodGraph {
 		
 		for(int i=0; i < lines.length ; i++) {
 			Integer curLineId = node.GetSrcLineIdx() + i;
-			List<Integer> originalLines = mappings.get(mappings.size()-1).get(curLineId);
+			List<Integer> originalLines = Helper.incOneToAll(mappings.get(mappings.size()-1).get(curLineId));
 			
-			// TODO why shouldn't I increment 1?
 			result += originalLines;
 			if (i != lines.length -1) {
 				result += " -> ";
@@ -270,19 +266,11 @@ public class MethodGraph {
 		return targets;
 	}
 	
-	private String cleanLineFlow(String lineFlow, List<Integer> ignoredLines) {
+	private String cleanLineFlow(String lineFlow) {
 		lineFlow = lineFlow.replace(",", " ->");
 		lineFlow = lineFlow.replace("[", "");
 		lineFlow = lineFlow.replace("]", "");
 		String[] items = lineFlow.split(" -> ");
-		
-		for(int i = 0; i < items.length; i++) {
-			// FIXME
-			int lineNo = Helper.parseInt(items[i]);
-			if (ignoredLines.contains(lineNo)) {
-				items[i] = "";
-			}
-		}
 		
 		for(int i = 0; i < items.length - 1; i++) {
 			if (items[i].equals(items[i+1])) {

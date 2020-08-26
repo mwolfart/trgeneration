@@ -4,14 +4,9 @@ Last changes
 
 TODOs
 [HIGH]
-- ELSE IF is not working properly
-- Class name not being collected properly
 - Store parameters along with methods (low effort)
-- "double" is recognized as "do"
-- Some parts of the logic will look for specific words or characters, and do not test if these are inside a string (low-effort)
 
 [MED/HIGH]
-- For each is not supported (medium-high effort)
 - do/while is not supported (medium-high effort) (convert to while() {})
 - Classes inside classes are not supported (medium-high effort)
 - Functions inside methods are not supported (medium-high effort)

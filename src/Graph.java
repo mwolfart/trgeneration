@@ -10,7 +10,6 @@ public class Graph {
 	private List<String> sourceCode;
 	private List<MethodGraph> methodGraphs;
 	private List<Integer> emptyLines;
-	private List<Integer> ignoredLines;
 	
 	private List<Map<Integer, List<Integer>>> lineMappings = new ArrayList<Map<Integer, List<Integer>>>();
 	
@@ -20,7 +19,6 @@ public class Graph {
 		sourceCode = new ArrayList<String>();	
 		methodGraphs = new ArrayList<MethodGraph>();
 		emptyLines = new ArrayList<Integer>();
-		ignoredLines = new ArrayList<Integer>();
 		printDebug = false;
 	}
 	
@@ -142,7 +140,7 @@ public class Graph {
 	
 	public void PrintLineFlows() {
 		for(MethodGraph graph : methodGraphs) {
-			graph.PrintLineFlow(lineMappings, ignoredLines);
+			graph.PrintLineFlow(lineMappings);
 		}
 	}
 	
@@ -297,6 +295,9 @@ public class Graph {
 				blankLines++;
 				emptyLines.add(i);
 			}
+			if (sourceCode.get(i).equals("{")) {
+				emptyLines.add(i);
+			}
 			// if first line of file is blank, point to 0.
 			int targetLineId = Math.max(i-blankLines, 0);
 			mapping.put(i, initArray(targetLineId));
@@ -321,7 +322,6 @@ public class Graph {
 				mapping.put(oldLineId, initArray(i-1)); 
 				numRemovedLines++;
 				
-				ignoredLines.add(oldLineId);
 				sourceCode.remove(i);
 				i--;
 			} else {
