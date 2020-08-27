@@ -310,10 +310,14 @@ public class MethodGraph {
 						addEdge(getPrevLine(i),openline);	
 						addEdge(openline,getNextLine(i));
 					}
-					else{ //do
+					else if (methodLines.get(i+1).toLowerCase().matches("^\\b(while)\\b.*")){ //do
 						addEdge(getPrevLine(openline), getNextLine(openline)); //entry edge that skips the "do" statement
-						addEdge(getPrevLine(i),getNextLine(openline)); //looping edge
-						addEdge(getPrevLine(i),getNextLine(i)); //loop exit edge
+						addEdge(getPrevLine(i),i+1); //into loop test
+						addEdge(i+1,getNextLine(openline)); //looping edge
+						addEdge(i+1,getNextLine(i+1)); //loop exit edge
+					} else {
+						System.err.println("Do without while");
+						System.exit(2);
 					}
 				}
 				

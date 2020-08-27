@@ -66,7 +66,7 @@ public class Graph {
 		addDummyNodes();
 		buildFullMap();
 		buildReverseFullMap();
-
+		
 		List<Pair<Integer, Integer>> classesBlocks = getClassesBlocks();
 		
 		for (int i=0; i < classesBlocks.size(); i++) {

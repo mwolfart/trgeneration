@@ -5,12 +5,14 @@ Last changes
 TODOs
 [HIGH]
 - Store parameters along with methods (low effort)
+- Cleanup and fix TR (low effort)
+- Fix line flow when loops are present (low effort)
 
 [MED/HIGH]
-- do/while is not supported (medium-high effort) (convert to while() {})
 - Classes inside classes are not supported (medium-high effort)
 - Functions inside methods are not supported (medium-high effort)
 - Ternary operator is interpreted as a normal assignment (medium effort)
+- Fix method and class identification (medium effort)
 
 [MED]
 - Method signature is currently ignored, check if that's correct (?)
