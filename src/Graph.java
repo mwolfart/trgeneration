@@ -762,7 +762,7 @@ public class Graph {
 				//find the opening
 				int openline = findStartOfBlock(i-1);
 
-				if (sourceCode.get(openline).toLowerCase().matches("^(\\bwhile\\b|\\bdo\\b).*")
+				if (sourceCode.get(openline).toLowerCase().matches("^\\b(while|do|if|else)\\b.*")
 						&& sourceCode.get(i-1).equals("}")) {
 					sourceCode.add(i, "dummy_node;");
 					numAddedLines++;

@@ -291,8 +291,8 @@ public class MethodGraph {
 			System.out.printf("%s\n", outlines);
 		}
 		
-		int conditionalStartLine=0;
-		List<Integer> edgeStartLines = new ArrayList<Integer>();
+		List<Integer> conditionalStartLines = new ArrayList<Integer>();
+		List<List<Integer>> edgeStartLinesList = new ArrayList<List<Integer>>();
 		
 		for (int i=0; i<methodLines.size(); i++){
 			
@@ -324,38 +324,51 @@ public class MethodGraph {
 				//for conditionals, we won't add edges until after the block.  Then link all the close braces to the end of the block
 				else if (methodLines.get(openline).toLowerCase().matches("^\\b(if|else if)\\b.*")){
 					if (methodLines.get(openline).toLowerCase().matches("^\\bif\\b.*")) {
-						conditionalStartLine = openline;
-						addEdge(conditionalStartLine,openline+1);
-					} else {
+						edgeStartLinesList.add(new ArrayList<Integer>());
+						
+						conditionalStartLines.add(openline);
+						addEdge(openline,openline+1);
+					} else { // else if
+						int conditionalStartLine = conditionalStartLines.get(conditionalStartLines.size()-1);
 						addEdge(conditionalStartLine,openline);
 						addEdge(openline,openline+1);
-						conditionalStartLine = openline;
+						conditionalStartLines.set(conditionalStartLines.size()-1, openline);
 					}
+					
 					//if we're not done with the conditional block, save the start of this edge until we find the end of the block
 					if (methodLines.size() > i+1 && methodLines.get(i+1).toLowerCase().matches("^\\belse\\b.*")){
-						edgeStartLines.add(getPrevLine(i));
+						edgeStartLinesList.get(edgeStartLinesList.size()-1).add(getPrevLine(i));
 					}
 					else{
-						for (Integer start: edgeStartLines){
+						for (Integer start: edgeStartLinesList.get(edgeStartLinesList.size()-1)){
 							addEdge(start, i+1);
 						}
-						edgeStartLines.clear();
+						edgeStartLinesList.get(edgeStartLinesList.size()-1).clear();
+						edgeStartLinesList.remove(edgeStartLinesList.size()-1);
+						conditionalStartLines.remove(conditionalStartLines.size()-1);
 						
 						addEdge(getPrevLine(i),getNextLine(i));
 						addEdge(openline,getNextLine(i));
 					}
 				}
 				else if (methodLines.get(openline).toLowerCase().substring(0,4).equals("else")){
-					if (edgeStartLines.size() == 0){
-						System.err.println("Else without If");
+					if (edgeStartLinesList.size() == 0 
+							|| edgeStartLinesList.get(edgeStartLinesList.size()-1).size() == 0){
+						System.err.println("Else without if block");
 						System.exit(2);
 					}
-					edgeStartLines.add(i-1);
+					edgeStartLinesList.get(edgeStartLinesList.size()-1).add(i-1);
+					
+					int conditionalStartLine = conditionalStartLines.get(conditionalStartLines.size()-1);
 					addEdge(conditionalStartLine,openline+1);
-					for (Integer start: edgeStartLines){
+					
+					for (Integer start: edgeStartLinesList.get(edgeStartLinesList.size()-1)){
 						addEdge(start, i+1);
 					}
-					edgeStartLines.clear();
+					
+					edgeStartLinesList.get(edgeStartLinesList.size()-1).clear();
+					edgeStartLinesList.remove(edgeStartLinesList.size()-1);
+					conditionalStartLines.remove(conditionalStartLines.size()-1);
 				}
 				else if (methodLines.get(openline).toLowerCase().matches("^\\bswitch\\b.*")){
 
