@@ -148,7 +148,8 @@ public class Graph {
 	private List<Pair<Integer, Integer>> getClassesBlocks() {
 		List<Pair<Integer, Integer>> classesBlocks = new ArrayList<Pair<Integer, Integer>>();
 		for (int i=0; i<sourceCode.size(); i++) {
-			if (Helper.lineContainsReservedWord(sourceCode.get(i), "class")) {
+			// FIXME
+			if (sourceCode.get(i).matches("^[ \\t]*((public|private|protected)\\s+)?(static\\s+)?(final\\s+)?class\\s.*")) {
 				int start = i;
 				int end = findEndOfBlock(i+1); // TODO might be problem if { } is in same line
 				classesBlocks.add(new ImmutablePair<Integer, Integer>(start, end));
@@ -188,14 +189,10 @@ public class Graph {
 		int end = -1;
 		
 		while (idx < line.length() && end == -1) {
-			if(line.charAt(idx) == '{') 
+			if(!Character.isDigit(line.charAt(idx)) && !Character.isLetter(line.charAt(idx))) 
 				end = idx-1;
 			idx++;
 		}
-		
-		// ignore trailing spaces
-		while (line.charAt(end) == ' ' || line.charAt(end) == '\t')
-			end--;
 		
 		if (end == -1){
 			System.err.println("Invalid class name");
