@@ -1,6 +1,5 @@
 import java.util.*;
 
-import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -138,9 +137,9 @@ public class Graph {
 		}
 	}
 	
-	public void PrintLineFlows() {
+	public void PrintLineEdges() {
 		for(MethodGraph graph : methodGraphs) {
-			graph.PrintLineFlow(lineMappings);
+			graph.PrintLineEdges(lineMappings);
 		}
 	}
 	
@@ -148,7 +147,6 @@ public class Graph {
 	private List<Pair<Integer, Integer>> getClassesBlocks() {
 		List<Pair<Integer, Integer>> classesBlocks = new ArrayList<Pair<Integer, Integer>>();
 		for (int i=0; i<sourceCode.size(); i++) {
-			// FIXME
 			if (sourceCode.get(i).matches("^[ \\t]*((public|private|protected)\\s+)?(static\\s+)?(final\\s+)?class\\s.*")) {
 				int start = i;
 				int end = findEndOfBlock(i+1); // TODO might be problem if { } is in same line
@@ -164,8 +162,8 @@ public class Graph {
 		List<Pair<Integer, Integer>> methodBlocks = new ArrayList<Pair<Integer, Integer>>();
 		for (int i=classStartLineId; i<classEndLineId; i++) {
 			// TODO not all methods contain a scope, default is protected
-			if (Helper.lineContainsReservedWord(sourceCode.get(i), "(private|protected|public)")
-					&& sourceCode.get(i).matches(".*[a-zA-Z][a-zA-Z0-9]*[ \t]*\\(.*\\)[ \t]*\\{$")) {
+			if (!Helper.lineContainsReservedWord(sourceCode.get(i), "(if|while|for|class|switch)")
+					&& sourceCode.get(i).matches(".*[a-zA-Z][a-zA-Z0-9]*\\s*\\(.*\\)\\s*\\{$")) {
 				int start = i;
 				int end = findEndOfBlock(i+1);
 				methodBlocks.add(new ImmutablePair<Integer, Integer>(start, end));
@@ -303,6 +301,20 @@ public class Graph {
 		lineMappings.add(mapping);
 		sourceCode.removeAll(Collections.singleton(""));
 	}
+	
+	// convert ternary operations into ifs
+	// ifs are inserted in the same lines, so no mapping needs to be done
+	
+	// TODO since this is a hard operation to make, I'm leaving it for later
+	/*
+	private void convertTernaries() {
+		int a = 1 > 2 ? 3 : 4;
+		for(int i = 0; i < sourceCode.size(); i++) {
+			String curLine = sourceCode.get(i);
+			if (Helper.lineContainsReservedWord(curLine, "(.*?[^\\{\\}]*:.*)"));
+		}
+	}
+	*/
 	
 	//move opening braces on their own line to the previous line
 	// Note: curly bracket must be alone
@@ -665,6 +677,7 @@ public class Graph {
 		eliminateComments();
 		trimLines();
 		removeBlankLines();
+		// convertTernaries();
 		
 		// TODO trim lines each step? There are some spaces causing extra lines.
 		//  actually, in the functions, do not split if its only spaces and tabs

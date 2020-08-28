@@ -6,12 +6,10 @@ TODOs
 [HIGH]
 - Store parameters along with methods (low effort)
 - Cleanup and fix TR (low effort)
-- Fix line flow when loops are present (low effort)
 
 [MED/HIGH]
 - Classes inside classes are not supported (medium-high effort)
 - Functions inside methods are not supported (medium-high effort)
-- Ternary operator is interpreted as a normal assignment (medium effort)
 - Fix method and class identification (medium effort)
 
 [MED]
@@ -20,10 +18,12 @@ TODOs
 - Functions as variables/objects are not supported (high effort)
 - Logic will not test for all unbalanced objects, like parentheses (medium-high effort) (?)
 - Review code manipulation in cleanup process: some methods might have to come before others (medium effort)
-- Code might fail if there are open/close brackets in the same line (medium/low effort)
-  -- Empty method
+- Ternary operator is interpreted as a normal instruction (high effort)
+- Check how algorithm behaves if an object is declared (with brackets) for instance: new A({});
+- throws (for methods) and throw (as instructions) are not supported
 
 [LOW]
+- Static initializers not covered
 - Source code corresponding to each node is not drawn along with image (high effort)
 - [refactoring] trimLines is called many times in the cleanup process (medium effort)
 - [refactoring] functions that match brackets (medium effort)

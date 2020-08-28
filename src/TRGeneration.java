@@ -41,7 +41,7 @@ public class TRGeneration {
 		
 		graph.build();
 		if (cmd.hasOption("g")) graph.PrintGraphStructures();
-		if (cmd.hasOption("l")) graph.PrintLineFlows();
+		if (cmd.hasOption("l")) graph.PrintLineEdges();
 		if (cmd.hasOption("t")) graph.PrintTestRequirements();
 	}
 

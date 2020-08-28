@@ -5,6 +5,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+
 public class MethodGraph {
 	private List<Node> nodes;
 	private List<Edge> edges;
@@ -206,54 +209,64 @@ public class MethodGraph {
 		System.out.println("=========\n");
 	}
 	
-	public void PrintLineFlow(List<Map<Integer, List<Integer>>> mappings) {
-		System.out.println("Printing line flow for class " + className + " method " + methodName + "...");
-		String lineFlow = getNodeLineFlow(0, mappings, new ArrayList<Integer>());
-		String lineFlowClean = cleanLineFlow(lineFlow);
-		System.out.println(lineFlowClean);
-		System.out.println("\n");
-	}
-	
-	private String getNodeLineFlow(int nodeNumber, List<Map<Integer, List<Integer>>> mappings, List<Integer> visitedNodes) {			
-		Node node = nodes.get(nodeNumber); // todo check if node id = node position in array
-		String unifiedLines = node.GetSrcLine();
-		String[] lines = unifiedLines.split("\n");
-		String result = "";
+	public void PrintLineEdges(List<Map<Integer, List<Integer>>> mappings) {
+		System.out.println("Printing line edges for class " + className + " method " + methodName + "...");
+		List<Pair<Integer, Integer>> edgeList = new ArrayList<>();
+		List<Integer> entries = new ArrayList<>();
+		List<Integer> exits = new ArrayList<>();
+		
+		for (Node node : nodes) {
+			if (node.isEntry()) {
+				entries.add(node.GetNodeNumber());
+			}
+			if (node.isExit()) {
+				exits.add(node.GetNodeNumber());
+			}
+			
+			// get edges in node lines
+			String unifiedLines = node.GetSrcLine();
+			String[] lines = unifiedLines.split("\n");
 
-		if(visitedNodes.contains(nodeNumber)) {
-			result += "<loop>";
-			return result;
-		}
-		visitedNodes.add(nodeNumber);
-		
-		for(int i=0; i < lines.length ; i++) {
-			Integer curLineId = node.GetSrcLineIdx() + i;
-			List<Integer> originalLines = Helper.incOneToAll(mappings.get(mappings.size()-1).get(curLineId));
+			Integer curLineId = node.GetSrcLineIdx();
+			List<Integer> originalLines = Helper.incOneToAll(mappings.get(mappings.size()-1).get(curLineId));			
+			for(int j=0; j < originalLines.size()-1; j++) {
+				edgeList.add(new ImmutablePair(originalLines.get(j), originalLines.get(j+1)));
+			}
+			int lastLineId = originalLines.get(originalLines.size()-1);
 			
-			result += originalLines;
-			if (i != lines.length -1) {
-				result += " -> ";
+			for(int i=1; i < lines.length-1 ; i++) {
+				curLineId = node.GetSrcLineIdx() + i;
+				originalLines = Helper.incOneToAll(mappings.get(mappings.size()-1).get(curLineId));
+				edgeList.add(new ImmutablePair(lastLineId, originalLines.get(0)));
+				for(int j=0; j < originalLines.size()-1; j++) {
+					edgeList.add(new ImmutablePair(originalLines.get(j), originalLines.get(j+1)));
+				}
+				lastLineId = originalLines.get(originalLines.size()-1);
+			}
+			
+			List<Integer> tgtNodes = getTargetsOfNode(node.GetNodeNumber());
+			for (Integer tgt : tgtNodes) {
+				int tgtLineId = nodes.get(tgt).GetSrcLineIdx();
+				List<Integer> tgtLines = Helper.incOneToAll(mappings.get(mappings.size()-1).get(tgtLineId));
+				edgeList.add(new ImmutablePair(lastLineId, tgtLines.get(0)));
 			}
 		}
 		
-		List<Integer> targetNodes = getTargetsOfNode(nodeNumber);
-		if (targetNodes.size() > 1) {
-			result += " -> (";
-			
-			for(int i=0; i < targetNodes.size(); i++) {
-				result += getNodeLineFlow(targetNodes.get(i), mappings, visitedNodes);
-				if (i < targetNodes.size()-1) 
-					result += " ; ";
-			}
-			result += ")";
-		} else if (targetNodes.size() == 1) {
-			result += " -> ";
-			result += getNodeLineFlow(targetNodes.get(0), mappings, visitedNodes);
-		} else {
-			result += " <end>";
+		for (Pair<Integer, Integer> p : edgeList) {
+			System.out.println(p.getLeft() + " -> " + p.getRight());
 		}
 		
-		return result;
+		System.out.print("Entry lines: ");
+		for (Integer entry : entries) {
+			System.out.print(entry + " ");
+		}
+		System.out.println();
+		
+		System.out.print("Exit lines: ");
+		for (Integer exit : exits) {
+			System.out.print(exit + " ");
+		}
+		System.out.println();
 	}
 	
 	private List<Integer> getTargetsOfNode(int src) {
@@ -264,24 +277,6 @@ public class MethodGraph {
 			}
 		}
 		return targets;
-	}
-	
-	private String cleanLineFlow(String lineFlow) {
-		lineFlow = lineFlow.replace(",", " ->");
-		lineFlow = lineFlow.replace("[", "");
-		lineFlow = lineFlow.replace("]", "");
-		String[] items = lineFlow.split(" -> ");
-		
-		for(int i = 0; i < items.length - 1; i++) {
-			if (items[i].equals(items[i+1])) {
-				items[i] = "";
-			}
-		}
-		
-		lineFlow = String.join(" -> ", items);
-		lineFlow = lineFlow.replace("->  ->", "->");
-		
-		return lineFlow;
 	}
 	
 	private void getNodes(){
