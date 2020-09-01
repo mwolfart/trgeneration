@@ -12,18 +12,21 @@ public class MethodGraph {
 	private List<Node> nodes;
 	private List<Edge> edges;
 	private String methodName;
+	private String methodSignature;
 	private String className;
 	private List<String> methodLines;
 	private Boolean printDebug;
 	
 	public MethodGraph(
 			String _methodName,
+			String _methodSignature,
 			String _className,
 			List<String> _mL,
 			Boolean _pD) {
 		nodes = new ArrayList<Node>();
 		edges = new ArrayList<Edge>();
 		methodName = _methodName;
+		methodSignature = _methodSignature;
 		className = _className;
 		methodLines = _mL;
 		printDebug = _pD;
@@ -46,6 +49,10 @@ public class MethodGraph {
 	
 	public String GetMethodName() {
 		return methodName;
+	}
+	
+	public String GetMethodSignature() {
+		return methodSignature;
 	}
 
 	// Get the first entry node
@@ -210,7 +217,7 @@ public class MethodGraph {
 	}
 	
 	public void PrintLineEdges(List<Map<Integer, List<Integer>>> mappings) {
-		System.out.println("Printing line edges for class " + className + " method " + methodName + "...");
+		System.out.println("Printing line edges for class " + className + " method " + methodSignature + "...");
 		List<Pair<Integer, Integer>> edgeList = new ArrayList<>();
 		List<Integer> entries = new ArrayList<>();
 		List<Integer> exits = new ArrayList<>();

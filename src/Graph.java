@@ -82,9 +82,11 @@ public class Graph {
 				int methodBlockEnd = methodBlocks.get(j).getRight();		
 				// TODO: is it right to ignore method signature and last bracket?
 				String methodName = getMethodNameFromLineId(methodBlockStart);
+				String methodParams = getMethodParamsFromLineId(methodBlockStart);
+				String methodSignature = methodName + methodParams;
 				
 				List<String> methodBody = getNextMethodBody(methodBlockStart+1, methodBlockEnd-1);
-				MethodGraph methodGraph = new MethodGraph(methodName, className, methodBody, printDebug);
+				MethodGraph methodGraph = new MethodGraph(methodName, methodSignature, className, methodBody, printDebug);
 				
 				methodGraph.computeNodes();
 				methodGraph.fixLineNumbers(methodBlockStart+1, lineMappings);
@@ -97,15 +99,9 @@ public class Graph {
 	public void PrintGraphStructures() {
 		for(MethodGraph graph : methodGraphs) {
 			String className = graph.GetClassName();
-			String methodName = graph.GetMethodName();
-			
-			if (className.equals(methodName)) {
-				System.out.println("Graph structure for class " + className
-						+ " constructor:\n");
-			} else {
-				System.out.println("Graph structure for class " + className
-						+ " method " + methodName + ":\n");
-			}
+			String methodSignature = graph.GetMethodSignature();
+			System.out.println("Test Requirements for class " + className
+					+ " method " + methodSignature + ":\n");
 			
 			graph.PrintGraphStructure(lineMappings);
 		}
@@ -118,15 +114,9 @@ public class Graph {
 			tr.ReadGraph(graph);
 			
 			String className = graph.GetClassName();
-			String methodName = graph.GetMethodName();
-			
-			if (className.equals(methodName)) {
-				System.out.println("Test Requirements for class " + className
-						+ " constructor:\n");
-			} else {
-				System.out.println("Test Requirements for class " + className
-						+ " method " + methodName + ":\n");
-			}
+			String methodSignature = graph.GetMethodSignature();
+			System.out.println("Test Requirements for class " + className
+					+ " method " + methodSignature + ":\n");
 		
 			tr.PrintNodeCoverage();
 			tr.PrintEdgeCoverage();
@@ -225,6 +215,13 @@ public class Graph {
 		}
 		
 		return line.substring(start, end);
+	}
+	
+	private String getMethodParamsFromLineId(int lineId) {
+		String line = sourceCode.get(lineId);
+		int start = line.indexOf("(");
+		int end = line.lastIndexOf(")");		
+		return line.substring(start, end+1);
 	}
 	
 	//trim all lines (remove indents and other leading/trailing whitespace)

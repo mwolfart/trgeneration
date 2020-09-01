@@ -3,14 +3,9 @@ Last changes
 - Script will generate one graph for each class. If there is more than one method, multiple disjunct graphs are drawn.
 
 TODOs
-[HIGH]
-- Store parameters along with methods (low effort)
-- Cleanup and fix TR (low effort)
-
 [MED/HIGH]
 - Classes inside classes are not supported (medium-high effort)
 - Functions inside methods are not supported (medium-high effort)
-- Fix method and class identification (medium effort)
 
 [MED]
 - Method signature is currently ignored, check if that's correct (?)
