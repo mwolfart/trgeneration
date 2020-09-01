@@ -76,17 +76,39 @@ public class SimplePathList {
 		String res = "";
 		for(int i = 0; i < spl.size(); i++) {
 			sp = spl.get(i);
-			
+
+			int lastLineListed = -1;
 			if (printAsLines) {
 				List<Node> nodeList = sp.GetNodes();
 				
-				res += "[" + (nodeList.get(0).GetLastLineId()+1) + ", ";
-				for(int j = 1; j < nodeList.size()-1; j++) {
-					for(Integer n : nodeList.get(j).GetSrcLinesIndex()) {
-						res += (n+1) + ", ";
+				if (nodeList.size() > 1) {
+					lastLineListed = nodeList.get(0).GetLastLineId()+1;
+					res += "[" + lastLineListed + ", ";
+					for(int j = 1; j < nodeList.size()-2; j++) {
+						for(Integer n : nodeList.get(j).GetSrcLinesIndex()) {
+							if (n+1 != lastLineListed) {
+								res += (n+1) + ", ";
+								lastLineListed = n+1;
+							}
+						}
 					}
+					int lastLineId = (nodeList.get(nodeList.size()-1).GetSrcLinesIndex().get(0)+1);
+					if (lastLineId != lastLineListed) {
+						res += lastLineId;
+					} else {
+						res = res.substring(0, res.length()-2);
+					}
+					res += "] ";
+				} else {
+					res += "[";
+					for(Integer n : nodeList.get(0).GetSrcLinesIndex()) {
+						if (n+1 != lastLineListed) {
+							res += (n+1) + ", ";
+						}
+					}
+					res = res.substring(0, res.length()-2);
+					res += "]";
 				}
-				res += (nodeList.get(nodeList.size()-1).GetSrcLinesIndex().get(0)+1) + "] ";
 			} else {
 				res += sp + " ";
 			}
