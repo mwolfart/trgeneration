@@ -28,6 +28,13 @@ public class Graph {
 	public void AddSrcLine(String line){
 		sourceCode.add(line);
 	}
+	
+	public void clear() {
+		sourceCode.clear();
+		methodGraphs.clear(); // TODO correct cleanup?
+		emptyLines.clear();
+		lineMappings.clear();
+	}
 		
 	public void dump() {
 		for(int n=0; n<lineMappings.size(); n++) {
@@ -61,7 +68,7 @@ public class Graph {
 		}
 	}
 	
-	public void build() {
+	public void build(String folder) {
 		cleanup();
 		addDummyNodes();
 		buildFullMap();
@@ -74,7 +81,7 @@ public class Graph {
 			int start = classBlockLimits.getLeft();
 			int end = classBlockLimits.getRight();
 			String className = getClassNameFromLineId(start);
-			Helper.createDir(className);
+			Helper.createDir(folder + className);
 			
 			List<Pair<Integer, Integer>> methodBlocks = getMethodBlocks(start, end);
 
@@ -98,7 +105,7 @@ public class Graph {
 		}
 	}
 	
-	public void PrintGraphStructures() {
+	public void PrintGraphStructures(String folder) {
 		for(MethodGraph graph : methodGraphs) {
 			String className = graph.GetClassName();
 			String methodSignature = graph.GetMethodSignature();
@@ -108,12 +115,12 @@ public class Graph {
 					+ " method " + methodSignature + ":\n\n";
 			output += graph.PrintGraphStructure(lineMappings);
 			
-			String filePath = className + "/" + methodName + "_graphStructure.txt";
+			String filePath = folder + className + "/" + methodName + "_graphStructure.txt";
 			writeFile(filePath, output);
 		}
 	}
 	
-	public void PrintTestRequirements() {
+	public void PrintTestRequirements(String folder) {
 		TestRequirements tr = new TestRequirements();
 		
 		for(MethodGraph graph : methodGraphs) {
@@ -131,12 +138,12 @@ public class Graph {
 			output += tr.PrintPrimePathCoverage();
 			output += "\n";
 			
-			String filePath = className + "/" + methodName + "_testRequirements.txt";
+			String filePath = folder + className + "/" + methodName + "_testRequirements.txt";
 			writeFile(filePath, output);
 		}
 	}
 	
-	public void PrintLineEdges() {
+	public void PrintLineEdges(String folder) {
 		for(MethodGraph graph : methodGraphs) {
 			String className = graph.GetClassName();
 			String methodSignature = graph.GetMethodSignature();
@@ -146,7 +153,7 @@ public class Graph {
 					+ className + " method " + methodSignature + "...";
 			output += graph.PrintLineEdges(lineMappings);
 			
-			String filePath = className + "/" + methodName + "_lineEdges.txt";
+			String filePath = folder + className + "/" + methodName + "_lineEdges.txt";
 			writeFile(filePath, output);
 		}
 	}
