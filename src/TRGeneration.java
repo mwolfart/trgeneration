@@ -54,17 +54,21 @@ public class TRGeneration {
 			readSource(filePath);
 			String fileDir = (isInputDirectory ? filePath.substring(0, filePath.lastIndexOf("\\")+1) : "");
 			
-			if (cmd.hasOption("d"))
-				graph.setDebug(true);
-
-			graph.build(fileDir);
-			if (cmd.hasOption("g"))
-				graph.PrintGraphStructures(fileDir);
-			if (cmd.hasOption("l"))
-				graph.PrintLineEdges(fileDir);
-			if (cmd.hasOption("t"))
-				graph.PrintTestRequirements(fileDir);
-			
+			try {
+				if (cmd.hasOption("d"))
+					graph.setDebug(true);
+	
+				graph.build(fileDir);
+				if (cmd.hasOption("g"))
+					graph.PrintGraphStructures(fileDir);
+				if (cmd.hasOption("l"))
+					graph.PrintLineEdges(fileDir);
+				if (cmd.hasOption("t"))
+					graph.PrintTestRequirements(fileDir);
+			} catch(Exception e) {
+				System.err.println("Error while processing file " + fileDir + ":");
+				System.err.println(e.getMessage());
+			}
 			graph.clear();
 		}
 	}
