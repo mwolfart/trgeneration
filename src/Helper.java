@@ -1,3 +1,4 @@
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -53,5 +54,14 @@ public class Helper {
 			newlist.add(item + 1);
 		}
 		return newlist;
+	}
+	
+	public static void createDir(String dirPath) {
+		File dir = new File(dirPath);
+		if (dir.exists()) return;
+		if (!dir.mkdir()) {
+			System.err.println("Could not create directory " + dirPath);
+			System.exit(2);
+		}
 	}
 }

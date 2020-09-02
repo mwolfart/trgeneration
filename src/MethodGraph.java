@@ -142,17 +142,6 @@ public class MethodGraph {
 		return null;
 	}
 	
-	/*
-	public void fixNodeNumbers(int nextNodeId) {
-		for(int i=0; i<nodes.size(); i++) {
-			nodes.get(i).SetNodeNumber(nodes.get(i).GetNodeNumber() + nextNodeId);
-		}
-		for(int i=0; i<edges.size(); i++) {
-			edges.get(i).SetValues(edges.get(i).GetStart() + nextNodeId, edges.get(i).GetEnd() + nextNodeId);
-		}
-	}
-	*/
-	
 	public void fixLineNumbers(int incAmount, List<Map<Integer, List<Integer>>> mappings) {
 		for(int i=0; i<nodes.size(); i++) {
 			nodes.get(i).SetSrcLineIdx(nodes.get(i).GetSrcLineIdx()+incAmount);
@@ -165,7 +154,7 @@ public class MethodGraph {
 	}
 	
 	public void writePng() {
-		writePng(className + "__" + methodName + ".png");
+		writePng(className + "/" + methodName + ".png");
 	}
 	
 	public void writePng(String path) {
@@ -179,27 +168,32 @@ public class MethodGraph {
 		gv.writeGraphToFile(gv.getGraph(strDOT, "png"), out);
 	}
 	
-	public void PrintNodes() {
+	public String PrintNodes() {
+		String output = "";
 		Iterator<Node> iterator = nodes.iterator();
 		Node node;
 		while(iterator.hasNext()) {
 			node = iterator.next();
-			System.out.println(node);
+			output += node;
 		}
+		return output;
 	}
 	
-	public void PrintEdges() {
+	public String PrintEdges() {
+		String output = "";
 		Iterator<Edge> iterator = edges.iterator();
 		Edge edge;
 		while(iterator.hasNext()) {
 			edge = iterator.next();
-			System.out.println(edge);
+			output += edge;
 		}
+		return output;
 	}
 	
-	public void PrintGraphStructure(List<Map<Integer, List<Integer>>> mappings) {
+	public String PrintGraphStructure(List<Map<Integer, List<Integer>>> mappings) {
+		String output = "";
 		for (Node node : nodes) {
-			System.out.println("Printing source code present in node #" + node.GetNodeNumber() + "...");
+			output += "Printing source code present in node #" + node.GetNodeNumber() + "...\n";
 			String unifiedLines = node.GetSrcLine();
 			String[] lines = unifiedLines.split("\n");
 			
@@ -208,16 +202,16 @@ public class MethodGraph {
 				line.replace("%forcenode%", "[FOR component] ");
 				Integer curLineId = node.GetSrcLineIdx() + i;
 				List<Integer> originalLines = Helper.incOneToAll(mappings.get(mappings.size()-1).get(curLineId));
-				System.out.println(" - Code `" + line + "` originally present at line(s) " + 
-						originalLines);
+				output += " - Code `" + line + "` originally present at line(s) " + 
+						originalLines + "\n";
 			}
-			System.out.println("End of source code for node " + node.GetNodeNumber() + "\n");		
+			output += "End of source code for node " + node.GetNodeNumber() + "\n\n";		
 		}
-		System.out.println("=========\n");
+		output += "=========\n\n";
+		return output;
 	}
 	
-	public void PrintLineEdges(List<Map<Integer, List<Integer>>> mappings) {
-		System.out.println("Printing line edges for class " + className + " method " + methodSignature + "...");
+	public String PrintLineEdges(List<Map<Integer, List<Integer>>> mappings) {
 		List<Pair<Integer, Integer>> edgeList = new ArrayList<>();
 		List<Integer> entries = new ArrayList<>();
 		List<Integer> exits = new ArrayList<>();
@@ -237,16 +231,16 @@ public class MethodGraph {
 			Integer curLineId = node.GetSrcLineIdx();
 			List<Integer> originalLines = Helper.incOneToAll(mappings.get(mappings.size()-1).get(curLineId));			
 			for(int j=0; j < originalLines.size()-1; j++) {
-				edgeList.add(new ImmutablePair(originalLines.get(j), originalLines.get(j+1)));
+				edgeList.add(new ImmutablePair<Integer, Integer>(originalLines.get(j), originalLines.get(j+1)));
 			}
 			int lastLineId = originalLines.get(originalLines.size()-1);
 			
 			for(int i=1; i < lines.length-1 ; i++) {
 				curLineId = node.GetSrcLineIdx() + i;
 				originalLines = Helper.incOneToAll(mappings.get(mappings.size()-1).get(curLineId));
-				edgeList.add(new ImmutablePair(lastLineId, originalLines.get(0)));
+				edgeList.add(new ImmutablePair<Integer, Integer>(lastLineId, originalLines.get(0)));
 				for(int j=0; j < originalLines.size()-1; j++) {
-					edgeList.add(new ImmutablePair(originalLines.get(j), originalLines.get(j+1)));
+					edgeList.add(new ImmutablePair<Integer, Integer>(originalLines.get(j), originalLines.get(j+1)));
 				}
 				lastLineId = originalLines.get(originalLines.size()-1);
 			}
@@ -255,25 +249,28 @@ public class MethodGraph {
 			for (Integer tgt : tgtNodes) {
 				int tgtLineId = nodes.get(tgt).GetSrcLineIdx();
 				List<Integer> tgtLines = Helper.incOneToAll(mappings.get(mappings.size()-1).get(tgtLineId));
-				edgeList.add(new ImmutablePair(lastLineId, tgtLines.get(0)));
+				edgeList.add(new ImmutablePair<Integer, Integer>(lastLineId, tgtLines.get(0)));
 			}
 		}
 		
+		String output = "";
 		for (Pair<Integer, Integer> p : edgeList) {
-			System.out.println(p.getLeft() + " -> " + p.getRight());
+			output += (p.getLeft() + " -> " + p.getRight()) + "\n";
 		}
 		
-		System.out.print("Entry lines: ");
+		output += "Entry lines: ";
 		for (Integer entry : entries) {
-			System.out.print(entry + " ");
+			output += entry + " ";
 		}
-		System.out.println();
+		output += "\n";
 		
-		System.out.print("Exit lines: ");
+		output += "Exit lines: ";
 		for (Integer exit : exits) {
-			System.out.print(exit + " ");
+			output += exit + " ";
 		}
-		System.out.println();
+		output += "\n\n";
+		
+		return output;
 	}
 	
 	private List<Integer> getTargetsOfNode(int src) {

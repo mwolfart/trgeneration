@@ -204,6 +204,8 @@ public class GraphViz {
 				   sb.append(line);
 			   }
 			   dis.close();
+			   // TODO check if does not break application
+			   // br.close();
 		   } 
 		   catch (Exception e) {
 			   System.err.println("Error: " + e.getMessage());

@@ -14,34 +14,23 @@ public class TestRequirements {
 	
 	public void ReadGraph(MethodGraph _graph) {
 		graph = _graph;
-	}
+	}	
 	
-//	public void PrintNodeCoverage() {
-//		if(graph == null) {
-//			System.out.println("Graph is null");
-//			return;
-//		}
-//		
-//		System.out.print("TR for Node Coverage: ");
-//		List<Node> traveledNodes = new LinkedList<Node>();
-//		Node node = graph.GetEntryNode();
-//		TravelNode(traveledNodes, node);
-//		PrintTraveledNodes(traveledNodes);
-//		System.out.println();
-//	}
-	
-	public void PrintNodeCoverage() {
+	public String PrintNodeCoverage() {
+		String output = "";
+		
 		if(graph == null) {
-			System.out.println("Graph is null");
-			return;
+			output += "Graph is null\n";
+			return output;
 		}
 		
-		System.out.print("TR for Node Coverage: ");
+		output += "TR for Node Coverage: ";
 		List<Node> traveledNodes = new LinkedList<Node>();
 		List<Node> entryNodeList = graph.GetEntryNodeList();
 		TravelNodeList(traveledNodes, entryNodeList);
-		PrintTraveledNodes(traveledNodes);
-		System.out.println();
+		output += PrintTraveledNodes(traveledNodes);
+		output += "\n";
+		return output;
 	}
 	
 	private void TravelNode(List<Node> _traveledNodes, Node _node) {
@@ -85,7 +74,8 @@ public class TestRequirements {
 		}
 	}
 	
-	private void PrintTraveledNodes(List<Node> _traveledNodes) {
+	private String PrintTraveledNodes(List<Node> _traveledNodes) {
+		String output = "";
 		
 		// Sort node list
 		Collections.sort(_traveledNodes, new Comparator<Node>() {
@@ -98,23 +88,28 @@ public class TestRequirements {
 		Node node;
 		while(iterator.hasNext()) {
 			node = iterator.next();
-			System.out.print(node.GetNodeNumber() + " ");
-		}
-	}
-	
-	public void PrintEdgeCoverage() {
-		if(graph == null) {
-			System.out.println("Graph is null");
-			return;
+			output += node.GetNodeNumber() + " ";
 		}
 		
-		System.out.print("TR for Edge Coverage: ");
+		return output;
+	}
+	
+	public String PrintEdgeCoverage() {
+		String output = "";
+		
+		if(graph == null) {
+			output += "Graph is null\n";
+			return output;
+		}
+		
+		output += "TR for Edge Coverage: ";
 		
 		List<Edge> traveledEdges = new LinkedList<Edge>();
 		Node node = graph.GetEntryNode();
 		TravelEdges(traveledEdges, node);			
-		PrintTraveledEdges(traveledEdges);		// Display sorted edge list
-		System.out.println();
+		output += PrintTraveledEdges(traveledEdges);		// Display sorted edge list
+		output += "\n";
+		return output;
 	}
 	
 	private void TravelEdges(List<Edge> _traveledEdges, Node _node) {
@@ -147,7 +142,8 @@ public class TestRequirements {
 		}		
 	}
 	
-	private void PrintTraveledEdges(List<Edge> _traveledEdges) {
+	private String PrintTraveledEdges(List<Edge> _traveledEdges) {
+		String output = "";
 		
 		// Sort edge list
 		Collections.sort(_traveledEdges, new Comparator<Edge>() {
@@ -165,22 +161,25 @@ public class TestRequirements {
 		Edge edge;
 		while(iterator.hasNext()) {
 			edge = iterator.next();
-			System.out.print("[" + edge.GetStart() + "," + edge.GetEnd() + "] ");
-		}
-	}
-
-	public void PrintEdgePairCoverage() {
-		if(graph == null) {
-			System.out.println("Graph is null");
-			return;
+			output += ("[" + edge.GetStart() + "," + edge.GetEnd() + "] ");
 		}
 		
-		System.out.print("TR for Edge-Pair Coverage: ");
+		return output;
+	}
+
+	public String PrintEdgePairCoverage() {
+		String output = "";
+		if(graph == null) {
+			return "Graph is null\n";
+		}
+		
+		output += "TR for Edge-Pair Coverage: ";
 		List<EdgePair> traveledEPs = new LinkedList<EdgePair>();
 		Node node = graph.GetEntryNode();
 		TravelEdgePairs(traveledEPs, node);
-		PrintTraveledEPs(traveledEPs);
-		System.out.println();
+		output += PrintTraveledEPs(traveledEPs);
+		output += "\n";
+		return output;
 	}
 	
 	private void TravelEdgePairs(List<EdgePair> _traveledEPs, Node _node) {
@@ -221,7 +220,8 @@ public class TestRequirements {
 		}		
 	}
 	
-	private void PrintTraveledEPs(List<EdgePair> _traveledEPs) {
+	private String PrintTraveledEPs(List<EdgePair> _traveledEPs) {
+		String output = "";
 		
 		// Sort edge list
 		Collections.sort(_traveledEPs, new Comparator<EdgePair>() {
@@ -242,17 +242,19 @@ public class TestRequirements {
 		EdgePair ep;
 		while(iterator.hasNext()) {
 			ep = iterator.next();
-			System.out.print("[" + ep.GetStart() + "," + ep.GetMiddle() + "," + ep.GetEnd() + "] ");
+			output += ("[" + ep.GetStart() + "," + ep.GetMiddle() + "," + ep.GetEnd() + "] ");
 		}
+		return output;
 	}
 
-	public void PrintPrimePathCoverage() {
+	public String PrintPrimePathCoverage() {
+		String output = "";
+		
 		if(graph == null) {
-			System.out.println("Graph is null");
-			return;
+			return "Graph is null\n";
 		}
 		
-		System.out.print("TR for Prime Path Coverage: ");
+		output += "TR for Prime Path Coverage: ";
 		
 		List<Node> traveledNodes = new LinkedList<Node>();
 		Node node = graph.GetEntryNode();
@@ -267,7 +269,9 @@ public class TestRequirements {
 		ppl.RemoveSubPath();
 		//System.out.println("Final Prime Path TR: ");
 		ppl.setLineMode();
-		System.out.println(ppl);
+		output += ppl + "\n";
+		
+		return output;
 	}
 	
 	private void GenerateSimplePath(SimplePathPool _pool, SimplePathList _spl) {

@@ -1,11 +1,12 @@
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class Graph {
-	//private List<Node> nodes;		// Node list
-	//private List<Edge> edges;		// Edge list
 	private List<String> sourceCode;
 	private List<MethodGraph> methodGraphs;
 	private List<Integer> emptyLines;
@@ -73,6 +74,7 @@ public class Graph {
 			int start = classBlockLimits.getLeft();
 			int end = classBlockLimits.getRight();
 			String className = getClassNameFromLineId(start);
+			Helper.createDir(className);
 			
 			List<Pair<Integer, Integer>> methodBlocks = getMethodBlocks(start, end);
 
@@ -100,10 +102,14 @@ public class Graph {
 		for(MethodGraph graph : methodGraphs) {
 			String className = graph.GetClassName();
 			String methodSignature = graph.GetMethodSignature();
-			System.out.println("Test Requirements for class " + className
-					+ " method " + methodSignature + ":\n");
+			String methodName = graph.GetMethodName();
 			
-			graph.PrintGraphStructure(lineMappings);
+			String output = "Test Requirements for class " + className
+					+ " method " + methodSignature + ":\n\n";
+			output += graph.PrintGraphStructure(lineMappings);
+			
+			String filePath = className + "/" + methodName + "_graphStructure.txt";
+			writeFile(filePath, output);
 		}
 	}
 	
@@ -115,21 +121,44 @@ public class Graph {
 			
 			String className = graph.GetClassName();
 			String methodSignature = graph.GetMethodSignature();
-			System.out.println("Test Requirements for class " + className
-					+ " method " + methodSignature + ":\n");
-		
-			tr.PrintNodeCoverage();
-			tr.PrintEdgeCoverage();
-			tr.PrintEdgePairCoverage();
-			tr.PrintPrimePathCoverage();
+			String methodName = graph.GetMethodName();
 			
-			System.out.println("\n");
+			String output = "Test Requirements for class " + className
+					+ " method " + methodSignature + ":\n\n";
+			output += tr.PrintNodeCoverage();
+			output += tr.PrintEdgeCoverage();
+			output += tr.PrintEdgePairCoverage();
+			output += tr.PrintPrimePathCoverage();
+			output += "\n";
+			
+			String filePath = className + "/" + methodName + "_testRequirements.txt";
+			writeFile(filePath, output);
 		}
 	}
 	
 	public void PrintLineEdges() {
 		for(MethodGraph graph : methodGraphs) {
-			graph.PrintLineEdges(lineMappings);
+			String className = graph.GetClassName();
+			String methodSignature = graph.GetMethodSignature();
+			String methodName = graph.GetMethodName();
+			
+			String output = "Printing line edges for class " 
+					+ className + " method " + methodSignature + "...";
+			output += graph.PrintLineEdges(lineMappings);
+			
+			String filePath = className + "/" + methodName + "_lineEdges.txt";
+			writeFile(filePath, output);
+		}
+	}
+	
+	private void writeFile(String filePath, String content) {
+		try {
+			File file = new File(filePath);
+			FileWriter fr = new FileWriter(file, true);
+			fr.write(content);
+			fr.close();
+		} catch (IOException e) {
+			System.err.println("Error in writing file " + filePath);
 		}
 	}
 	
@@ -783,15 +812,6 @@ public class Graph {
 		
 		lineMappings.add(mapping);
 	}
-	
-	/*
-	private String removeTags(String line){
-		line = line.replace("%forcenode%", "");
-		line = line.replace("%forcelabel%", "");
-		
-		return line;
-	}
-	*/
 	
 	private <T> ArrayList<T> initArray(T firstElement) {
 		return new ArrayList<T>(Arrays.asList(firstElement));
