@@ -29,7 +29,8 @@ public class TRGeneration {
 		options.addOption("o", true, "PNG output path"); // does not have a value
 		options.addOption("g", false, "Print graph structures");
 		options.addOption("l", false, "Print line flows");
-		options.addOption("t", false, "Print test requirements");
+		options.addOption("t", false, "Print PPC and EC test requirements");
+		options.addOption("T", false, "Print complete test requirements");
 
 		CommandLineParser parser = new BasicParser();
 		CommandLine cmd = null;
@@ -64,6 +65,8 @@ public class TRGeneration {
 				if (cmd.hasOption("l"))
 					graph.PrintLineEdges(fileDir);
 				if (cmd.hasOption("t"))
+					graph.PrintPPCandECrequirements(fileDir);
+				if (cmd.hasOption("T"))
 					graph.PrintTestRequirements(fileDir);
 			} catch(Exception e) {
 				System.err.println("Error while processing file " + fileDir + ":");

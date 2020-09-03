@@ -9,7 +9,7 @@ public class PrimePathList extends SimplePathList {
 		super();
 		ppl_candidates = new LinkedList<SimplePath>();
 	}
-	
+		
 	// Store only the ones with asterisk('*') or exclamation('!')
 	public void ChoosePPLCandidates(SimplePathPool _pool) {
 		Iterator<SimplePath> iterator = _pool.iterator();

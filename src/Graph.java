@@ -94,6 +94,9 @@ public class Graph {
 				String methodParams = getMethodParamsFromLineId(methodBlockStart);
 				String methodSignature = methodName + methodParams;
 				
+				String folderName = methodSignature.replace("<", "{").replace(">", "}");
+				Helper.createDir(folder + className + "\\" + folderName);
+				
 				List<String> methodBody = getNextMethodBody(methodBlockStart+1, methodBlockEnd-1);
 				MethodGraph methodGraph = new MethodGraph(methodName, methodSignature, className, methodBody, printDebug);
 				
@@ -109,13 +112,40 @@ public class Graph {
 		for(MethodGraph graph : methodGraphs) {
 			String className = graph.GetClassName();
 			String methodSignature = graph.GetMethodSignature();
-			String methodName = graph.GetMethodName();
 			
 			String output = "Test Requirements for class " + className
 					+ " method " + methodSignature + ":\n\n";
 			output += graph.PrintGraphStructure(lineMappings);
+
+			methodSignature = methodSignature.replace("<", "{");
+			methodSignature = methodSignature.replace(">", "}");
 			
-			String filePath = folder + className + "/" + methodName + "_graphStructure.txt";
+			String filePath = folder + className + "/" + methodSignature + "/graphStructure.txt";
+			writeFile(filePath, output);
+		}
+	}
+	
+	public void PrintPPCandECrequirements(String folder) {
+		TestRequirements tr = new TestRequirements();
+		
+		for(MethodGraph graph : methodGraphs) {
+			tr.ReadGraph(graph);
+			
+			String className = graph.GetClassName();
+			String methodSignature = graph.GetMethodSignature();
+			methodSignature = methodSignature.replace("<", "{");
+			methodSignature = methodSignature.replace(">", "}");
+
+			tr.allowLineBreaksBetweenSets();
+			
+			String output = "";
+			output += tr.PrintEdgeCoverage();
+			String filePath = folder + className + "/" + methodSignature + "/EC.txt";
+			writeFile(filePath, output);
+			
+			output = tr.PrintPrimePathCoverage();
+			output += "\n";
+			filePath = folder + className + "/" + methodSignature + "/PPC.txt";
 			writeFile(filePath, output);
 		}
 	}
@@ -128,17 +158,19 @@ public class Graph {
 			
 			String className = graph.GetClassName();
 			String methodSignature = graph.GetMethodSignature();
-			String methodName = graph.GetMethodName();
-			
+
 			String output = "Test Requirements for class " + className
 					+ " method " + methodSignature + ":\n\n";
-			output += tr.PrintNodeCoverage();
-			output += tr.PrintEdgeCoverage();
-			output += tr.PrintEdgePairCoverage();
-			output += tr.PrintPrimePathCoverage();
+			output += "TR for Node coverage: " + tr.PrintNodeCoverage();
+			output += "TR for Edge coverage: " + tr.PrintEdgeCoverage();
+			output += "TR for Edge-Pair coverage: " + tr.PrintEdgePairCoverage();
+			output += "TR for Prime Path coverage: " + tr.PrintPrimePathCoverage();
 			output += "\n";
+
+			methodSignature = methodSignature.replace("<", "{");
+			methodSignature = methodSignature.replace(">", "}");
 			
-			String filePath = folder + className + "/" + methodName + "_testRequirements.txt";
+			String filePath = folder + className + "/" + methodSignature + "/testRequirements.txt";
 			writeFile(filePath, output);
 		}
 	}
@@ -147,13 +179,15 @@ public class Graph {
 		for(MethodGraph graph : methodGraphs) {
 			String className = graph.GetClassName();
 			String methodSignature = graph.GetMethodSignature();
-			String methodName = graph.GetMethodName();
 			
 			String output = "Printing line edges for class " 
-					+ className + " method " + methodSignature + "...";
+					+ className + " method " + methodSignature + "...\n";
 			output += graph.PrintLineEdges(lineMappings);
+
+			methodSignature = methodSignature.replace("<", "{");
+			methodSignature = methodSignature.replace(">", "}");
 			
-			String filePath = folder + className + "/" + methodName + "_lineEdges.txt";
+			String filePath = folder + className + "/" + methodSignature + "/lineEdges.txt";
 			writeFile(filePath, output);
 		}
 	}

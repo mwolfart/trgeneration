@@ -3,6 +3,7 @@ import java.util.*;
 
 public class TestRequirements {
 	private MethodGraph graph = null; 
+	private boolean breakLines = false;
 	
 	public TestRequirements() {
 		graph = null;
@@ -16,6 +17,10 @@ public class TestRequirements {
 		graph = _graph;
 	}	
 	
+	public void allowLineBreaksBetweenSets() {
+		breakLines = true;
+	}
+	
 	public String PrintNodeCoverage() {
 		String output = "";
 		
@@ -24,7 +29,6 @@ public class TestRequirements {
 			return output;
 		}
 		
-		output += "TR for Node Coverage: ";
 		List<Node> traveledNodes = new LinkedList<Node>();
 		List<Node> entryNodeList = graph.GetEntryNodeList();
 		TravelNodeList(traveledNodes, entryNodeList);
@@ -101,9 +105,7 @@ public class TestRequirements {
 			output += "Graph is null\n";
 			return output;
 		}
-		
-		output += "TR for Edge Coverage: ";
-		
+				
 		List<Edge> traveledEdges = new LinkedList<Edge>();
 		Node node = graph.GetEntryNode();
 		TravelEdges(traveledEdges, node);			
@@ -161,7 +163,33 @@ public class TestRequirements {
 		Edge edge;
 		while(iterator.hasNext()) {
 			edge = iterator.next();
-			output += ("[" + edge.GetStart() + "," + edge.GetEnd() + "] ");
+			int start = edge.GetStart();
+			int end = edge.GetEnd();
+			List<Integer> startEdgeLines = graph.GetNode(start).GetSrcLinesIndex();
+			List<Integer> endEdgeLines = graph.GetNode(end).GetSrcLinesIndex();
+			
+			if (startEdgeLines.size() == 1) {
+				start = startEdgeLines.get(0)+1;
+			} else {
+				for(int i=1; i<startEdgeLines.size()-1; i++) {
+					output += ("[" + (startEdgeLines.get(i-1)+1) + "," + (startEdgeLines.get(i)+1) + "]");
+					output += breakLines ? "\n" : " ";
+				}
+				start = startEdgeLines.get(startEdgeLines.size()-1) + 1;
+			}
+
+			if (start != endEdgeLines.get(0)+1) {
+				output += ("[" + start + "," + (endEdgeLines.get(0)+1) + "]");
+				output += breakLines ? "\n" : " ";
+			}
+			
+			if (endEdgeLines.size() > 1) {
+				for(int i=0; i<startEdgeLines.size()-1; i++) {
+					output += ("[" + (startEdgeLines.get(i)+1) + "," + (startEdgeLines.get(i+1)+1) + "]");
+					output += breakLines ? "\n" : " ";
+				}
+			}
+			
 		}
 		
 		return output;
@@ -173,7 +201,6 @@ public class TestRequirements {
 			return "Graph is null\n";
 		}
 		
-		output += "TR for Edge-Pair Coverage: ";
 		List<EdgePair> traveledEPs = new LinkedList<EdgePair>();
 		Node node = graph.GetEntryNode();
 		TravelEdgePairs(traveledEPs, node);
@@ -254,8 +281,6 @@ public class TestRequirements {
 			return "Graph is null\n";
 		}
 		
-		output += "TR for Prime Path Coverage: ";
-		
 		List<Node> traveledNodes = new LinkedList<Node>();
 		Node node = graph.GetEntryNode();
 		TravelNode(traveledNodes, node);
@@ -269,6 +294,7 @@ public class TestRequirements {
 		ppl.RemoveSubPath();
 		//System.out.println("Final Prime Path TR: ");
 		ppl.setLineMode();
+		if (breakLines) ppl.allowLineBreaks();
 		output += ppl + "\n";
 		
 		return output;

@@ -8,6 +8,7 @@ import java.util.List;
 public class SimplePathList {
 	protected List<SimplePath> spl;
 	private boolean printAsLines = false;
+	private boolean breakLines = false;	
 	
 	public SimplePathList() {
 		spl = new LinkedList<SimplePath>();
@@ -42,6 +43,10 @@ public class SimplePathList {
 	
 	public void setLineMode() {
 		printAsLines = true;
+	}
+
+	public void allowLineBreaks() {
+		breakLines = true;
 	}
 	
 //	public String toString() {
@@ -98,7 +103,7 @@ public class SimplePathList {
 					} else {
 						res = res.substring(0, res.length()-2);
 					}
-					res += "] ";
+					res += "]" + (breakLines ? "\n" : " ");
 				} else {
 					res += "[";
 					for(Integer n : nodeList.get(0).GetSrcLinesIndex()) {
@@ -115,8 +120,5 @@ public class SimplePathList {
 		}
 		
 		return res;
-	}
-	
-	
-	
+	}	
 }
