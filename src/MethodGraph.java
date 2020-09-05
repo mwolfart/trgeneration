@@ -11,6 +11,7 @@ import org.apache.commons.lang3.tuple.Pair;
 public class MethodGraph {
 	private List<Node> nodes;
 	private List<Edge> edges;
+	private List<Edge> lineEdges;
 	private String methodName;
 	private String methodSignature;
 	private String className;
@@ -25,6 +26,7 @@ public class MethodGraph {
 			Boolean _pD) {
 		nodes = new ArrayList<Node>();
 		edges = new ArrayList<Edge>();
+		lineEdges = new ArrayList<Edge>();
 		methodName = _methodName;
 		methodSignature = _methodSignature;
 		className = _className;
@@ -128,6 +130,17 @@ public class MethodGraph {
 		return chosenEdges;
 	}
 	
+	// Get edge list that start from line "lineId"
+	public List<Edge> GetLineEdgesStartingOn(int lineId) {
+		List<Edge> foundEdges = new ArrayList<Edge>();
+		for (Edge e : lineEdges) {
+			if (e.GetStart() == lineId) {
+				foundEdges.add(e);
+			}
+		}
+		return foundEdges;
+	}
+	
 	// Get the node with a specified node number
 	public Node GetNode(int _node_num) {
 		Iterator<Node> iterator = nodes.iterator();
@@ -154,7 +167,8 @@ public class MethodGraph {
 	}
 	
 	public void writePng() {
-		writePng(className + "/" + methodName + ".png");
+		String fileName = methodSignature.replace("<", "{").replace(">", "}");
+		writePng(className + "/" + fileName + ".png");
 	}
 	
 	public void writePng(String path) {
@@ -271,6 +285,23 @@ public class MethodGraph {
 		output += "\n\n";
 		
 		return output;
+	}
+	
+	public void generateLineEdges() {
+		for (Node n : nodes) {
+			List<Integer> lines = n.GetSrcLinesIndex();
+			for (int i = 1; i < lines.size(); i++) {
+				lineEdges.add(new Edge(lines.get(i-1), lines.get(i)));
+			}
+		}
+		
+		for (Edge e : edges) {
+			Node src = nodes.get(e.GetStart());
+			Node tgt = nodes.get(e.GetEnd());
+			Integer srcLine = src.GetLastLineId();
+			Integer tgtLine = src.GetSrcLinesIndex().get(0);
+			lineEdges.add(new Edge(srcLine, tgtLine));
+		}
 	}
 	
 	private List<Integer> getTargetsOfNode(int src) {

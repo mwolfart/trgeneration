@@ -102,6 +102,7 @@ public class Graph {
 				
 				methodGraph.computeNodes();
 				methodGraph.fixLineNumbers(methodBlockStart+1, lineMappings);
+				methodGraph.generateLineEdges();
 				methodGraph.writePng();
 				methodGraphs.add(methodGraph);	
 			}

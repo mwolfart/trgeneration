@@ -3,6 +3,7 @@ import java.util.*;
 
 public class TestRequirements {
 	private MethodGraph graph = null; 
+	private boolean lineMode = true;
 	private boolean breakLines = false;
 	
 	public TestRequirements() {
@@ -19,6 +20,10 @@ public class TestRequirements {
 	
 	public void allowLineBreaksBetweenSets() {
 		breakLines = true;
+	}
+	
+	public void setLineMode(boolean value) {
+		lineMode = value;
 	}
 	
 	public String PrintNodeCoverage() {
@@ -53,7 +58,7 @@ public class TestRequirements {
 		_traveledNodes.add(_node);
 		//System.out.print(_node.GetNodeNumber() + " ");
 		
-		List<Edge> edgesList = graph.GetEdgeStartFrom(_node);
+		List<Edge> edgesList = graph.GetEdgeStartFrom(_node); // FIXME
 		Node node = null;
 		Edge edge = null;
 		int end = -1;
@@ -62,8 +67,29 @@ public class TestRequirements {
 			//System.out.println("[PrintNode] Edge = " + edge);
 			end = edge.GetEnd();
 			//System.out.println("[PrintNode] Edge end = " + end);
-			node = graph.GetNode(end);
+			node = graph.GetNode(end);	// FIXME
 			TravelNode(_traveledNodes, node);
+		}
+	}
+	
+	private void TravelLine(List<Integer> _traveledLines, Integer _line) {
+		for (int l : _traveledLines) {
+			if (l == _line) {
+				return;
+			}
+		}
+		
+		_traveledLines.add(_line);
+		
+		List<Edge> edgesList = graph.GetLineEdgesStartingOn(_line);
+		Integer line = null;
+		Edge edge = null;
+		int end = -1;
+		for(int i = 0; i < edgesList.size(); i++) {
+			edge = edgesList.get(i);
+			end = edge.GetEnd();
+			line = end;
+			TravelLine(_traveledLines, line);
 		}
 	}
 	
@@ -293,11 +319,38 @@ public class TestRequirements {
 		//System.out.println("1st Prime Path TR: " + ppl);
 		ppl.RemoveSubPath();
 		//System.out.println("Final Prime Path TR: ");
-		ppl.setLineMode();
+		// ppl.setLineMode();
 		if (breakLines) ppl.allowLineBreaks();
 		output += ppl + "\n";
 		
 		return output;
+	}
+	
+	public String PrintLinePrimePathCoverage() {
+		String output = "";
+		
+		if(graph == null) {
+			return "Graph is null\n";
+		}
+		
+		List<Integer> traveledLines = new LinkedList<Integer>();
+		int entryLine = graph.GetEntryNode().GetSrcLineIdx();
+		TravelLine(traveledLines, entryLine);
+		
+		// FIXME
+		
+		SimplePathList spl = new SimplePathList(traveledLines);
+		SimplePathPool pool = new SimplePathPool();
+		GenerateSimplePath(pool, spl);
+		//System.out.println("Final Simple Path : " + pool);
+		PrimePathList ppl = new PrimePathList();
+		ppl.ChoosePPLCandidates(pool);
+		//System.out.println("1st Prime Path TR: " + ppl);
+		ppl.RemoveSubPath();
+		//System.out.println("Final Prime Path TR: ");
+		// ppl.setLineMode();
+		if (breakLines) ppl.allowLineBreaks();
+		output += ppl + "\n";
 	}
 	
 	private void GenerateSimplePath(SimplePathPool _pool, SimplePathList _spl) {
