@@ -64,10 +64,10 @@ public class TRGeneration {
 					graph.PrintGraphStructures(fileDir);
 				if (cmd.hasOption("l"))
 					graph.PrintLineEdges(fileDir);
-				if (cmd.hasOption("t"))
-					graph.PrintPPCandECrequirements(fileDir);
 				if (cmd.hasOption("T"))
 					graph.PrintTestRequirements(fileDir);
+				if (cmd.hasOption("t"))
+					graph.PrintPPCandECrequirements(fileDir);
 			} catch(Exception e) {
 				System.err.println("Error while processing file " + fileDir + ":");
 				System.err.println(e.getMessage());

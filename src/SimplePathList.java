@@ -7,7 +7,6 @@ import java.util.List;
 
 public class SimplePathList {
 	protected List<SimplePath> spl;
-	private boolean printAsLines = false;
 	private boolean breakLines = false;	
 	
 	public SimplePathList() {
@@ -39,10 +38,6 @@ public class SimplePathList {
 	
 	public int size() {
 		return spl.size();
-	}
-	
-	public void setLineMode() {
-		printAsLines = true;
 	}
 
 	public void allowLineBreaks() {
@@ -81,42 +76,7 @@ public class SimplePathList {
 		String res = "";
 		for(int i = 0; i < spl.size(); i++) {
 			sp = spl.get(i);
-
-			int lastLineListed = -1;
-			if (printAsLines) {
-				List<Node> nodeList = sp.GetNodes();
-				
-				if (nodeList.size() > 1) {
-					lastLineListed = nodeList.get(0).GetLastLineId()+1;
-					res += "[" + lastLineListed + ", ";
-					for(int j = 1; j < nodeList.size()-2; j++) {
-						for(Integer n : nodeList.get(j).GetSrcLinesIndex()) {
-							if (n+1 != lastLineListed) {
-								res += (n+1) + ", ";
-								lastLineListed = n+1;
-							}
-						}
-					}
-					int lastLineId = (nodeList.get(nodeList.size()-1).GetSrcLinesIndex().get(0)+1);
-					if (lastLineId != lastLineListed) {
-						res += lastLineId;
-					} else {
-						res = res.substring(0, res.length()-2);
-					}
-					res += "]" + (breakLines ? "\n" : " ");
-				} else {
-					res += "[";
-					for(Integer n : nodeList.get(0).GetSrcLinesIndex()) {
-						if (n+1 != lastLineListed) {
-							res += (n+1) + ", ";
-						}
-					}
-					res = res.substring(0, res.length()-2);
-					res += "]";
-				}
-			} else {
-				res += sp + " ";
-			}
+			res += sp + (breakLines ? "\n" : " ");
 		}
 		
 		return res;

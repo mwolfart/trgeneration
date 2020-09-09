@@ -72,27 +72,6 @@ public class TestRequirements {
 		}
 	}
 	
-	private void TravelLine(List<Integer> _traveledLines, Integer _line) {
-		for (int l : _traveledLines) {
-			if (l == _line) {
-				return;
-			}
-		}
-		
-		_traveledLines.add(_line);
-		
-		List<Edge> edgesList = graph.GetLineEdgesStartingOn(_line);
-		Integer line = null;
-		Edge edge = null;
-		int end = -1;
-		for(int i = 0; i < edgesList.size(); i++) {
-			edge = edgesList.get(i);
-			end = edge.GetEnd();
-			line = end;
-			TravelLine(_traveledLines, line);
-		}
-	}
-	
 	private void TravelNodeList(List<Node> _traveledNodes, List<Node> _node_list) {
 		if(_node_list == null) {
 			System.out.println("ERROR: Node is null");
@@ -307,6 +286,10 @@ public class TestRequirements {
 			return "Graph is null\n";
 		}
 		
+		if(lineMode) {
+			graph.ProcessAsLines();
+		}
+		
 		List<Node> traveledNodes = new LinkedList<Node>();
 		Node node = graph.GetEntryNode();
 		TravelNode(traveledNodes, node);
@@ -319,38 +302,10 @@ public class TestRequirements {
 		//System.out.println("1st Prime Path TR: " + ppl);
 		ppl.RemoveSubPath();
 		//System.out.println("Final Prime Path TR: ");
-		// ppl.setLineMode();
 		if (breakLines) ppl.allowLineBreaks();
 		output += ppl + "\n";
 		
 		return output;
-	}
-	
-	public String PrintLinePrimePathCoverage() {
-		String output = "";
-		
-		if(graph == null) {
-			return "Graph is null\n";
-		}
-		
-		List<Integer> traveledLines = new LinkedList<Integer>();
-		int entryLine = graph.GetEntryNode().GetSrcLineIdx();
-		TravelLine(traveledLines, entryLine);
-		
-		// FIXME
-		
-		SimplePathList spl = new SimplePathList(traveledLines);
-		SimplePathPool pool = new SimplePathPool();
-		GenerateSimplePath(pool, spl);
-		//System.out.println("Final Simple Path : " + pool);
-		PrimePathList ppl = new PrimePathList();
-		ppl.ChoosePPLCandidates(pool);
-		//System.out.println("1st Prime Path TR: " + ppl);
-		ppl.RemoveSubPath();
-		//System.out.println("Final Prime Path TR: ");
-		// ppl.setLineMode();
-		if (breakLines) ppl.allowLineBreaks();
-		output += ppl + "\n";
 	}
 	
 	private void GenerateSimplePath(SimplePathPool _pool, SimplePathList _spl) {

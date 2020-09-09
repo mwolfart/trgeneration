@@ -56,7 +56,7 @@ public class MethodGraph {
 	public String GetMethodSignature() {
 		return methodSignature;
 	}
-
+	
 	// Get the first entry node
 	public Node GetEntryNode() {
 		Iterator<Node> iterator = nodes.iterator();
@@ -188,7 +188,7 @@ public class MethodGraph {
 		Node node;
 		while(iterator.hasNext()) {
 			node = iterator.next();
-			output += node;
+			output += " " + node;
 		}
 		return output;
 	}
@@ -199,7 +199,7 @@ public class MethodGraph {
 		Edge edge;
 		while(iterator.hasNext()) {
 			edge = iterator.next();
-			output += edge;
+			output += " " + edge;
 		}
 		return output;
 	}
@@ -291,7 +291,7 @@ public class MethodGraph {
 		for (Node n : nodes) {
 			List<Integer> lines = n.GetSrcLinesIndex();
 			for (int i = 1; i < lines.size(); i++) {
-				lineEdges.add(new Edge(lines.get(i-1), lines.get(i)));
+				lineEdges.add(new Edge(lines.get(i-1)+1, lines.get(i)+1));
 			}
 		}
 		
@@ -299,8 +299,44 @@ public class MethodGraph {
 			Node src = nodes.get(e.GetStart());
 			Node tgt = nodes.get(e.GetEnd());
 			Integer srcLine = src.GetLastLineId();
-			Integer tgtLine = src.GetSrcLinesIndex().get(0);
-			lineEdges.add(new Edge(srcLine, tgtLine));
+			Integer tgtLine = tgt.GetSrcLinesIndex().get(0);
+			if (srcLine != tgtLine) {
+				lineEdges.add(new Edge(srcLine+1, tgtLine+1));
+			}
+		}
+	}
+	
+	// TODO maybe not replace current setting
+	public void ProcessAsLines() {
+		int entryLine = GetEntryNode().GetSrcLinesIndex().get(0)+1;
+		List<Integer> exitLines = new ArrayList<Integer>();
+		
+		for (Node n : nodes) {
+			if (n.isExit()) {
+				exitLines.add(n.GetSrcLinesIndex().get(0)+1);
+			}
+		}
+		
+		nodes.clear();
+		edges = lineEdges;
+		List<Integer> addedNodes = new ArrayList<Integer>();
+		
+		for (Edge e : edges) {
+			Node startNode = new Node(e.GetStart(), "", entryLine == e.GetStart(), exitLines.contains(e.GetStart()));
+			Node endNode = new Node(e.GetEnd(), "", entryLine == e.GetEnd(), exitLines.contains(e.GetEnd()));
+			
+			if (!addedNodes.contains(e.GetStart())) {
+				nodes.add(startNode);
+				addedNodes.add(e.GetStart());
+			}
+			if (!addedNodes.contains(e.GetEnd())) {
+				nodes.add(endNode);
+				addedNodes.add(e.GetEnd());
+			}
+		}
+		
+		if (edges.isEmpty() && exitLines.contains(entryLine)) {
+			nodes.add(new Node(entryLine, "", true, true));
 		}
 	}
 	
