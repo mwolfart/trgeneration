@@ -2,7 +2,7 @@ import java.util.*;
 
 
 public class TestRequirements {
-	private MethodGraph graph = null; 
+	private Graph graph = null; 
 	private boolean lineMode = true;
 	private boolean breakLines = false;
 	
@@ -10,11 +10,11 @@ public class TestRequirements {
 		graph = null;
 	}
 	
-	public TestRequirements(MethodGraph _graph) {
+	public TestRequirements(Graph _graph) {
 		graph = _graph;
 	}
 	
-	public void ReadGraph(MethodGraph _graph) {
+	public void ReadGraph(Graph _graph) {
 		graph = _graph;
 	}	
 	

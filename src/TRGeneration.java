@@ -7,20 +7,14 @@ import java.util.Scanner;
 import org.apache.commons.cli.*;
 
 public class TRGeneration {
-	private static Graph graph;
+	private static CodeProcessor processor;
+	private static List<String> filesToProcess;
 
 	public static void main(String[] args) {
-
-		// ex.Test1();
-		// ex.Test2();
-		// ex.Test3();
-		// ex.Test4();
-		// ex.Test5(); // Need to work on
-
-		graph = new Graph();
+		filesToProcess = new ArrayList<String>();
 
 		if (args.length < 1) {
-			System.err.println("You must supply an input file");
+			System.err.println("You must supply an input file or folder");
 			System.exit(1);
 		}
 
@@ -42,37 +36,31 @@ public class TRGeneration {
 
 		String inputPath = args[args.length - 1];
 		File inputFile = new File(inputPath);
-		List<String> filesToRead = new ArrayList<String>();
 		boolean isInputDirectory = inputFile.isDirectory();
 
 		if (isInputDirectory) {
-			filesToRead = readDirectory(inputFile, filesToRead);
+			readDirectory(inputFile);
 		} else {
-			filesToRead.add(inputPath);
+			filesToProcess.add(inputPath);
 		}
 		
-		for (String filePath : filesToRead) {
+		for (String filePath : filesToProcess) {
+			processor = new CodeProcessor(filePath);
 			readSource(filePath);
-			String fileDir = (isInputDirectory ? filePath.substring(0, filePath.lastIndexOf("\\")+1) : "");
 			
 			try {
-				if (cmd.hasOption("d"))
-					graph.setDebug(true);
-	
-				graph.build(fileDir);
-				if (cmd.hasOption("g"))
-					graph.PrintGraphStructures(fileDir);
-				if (cmd.hasOption("l"))
-					graph.PrintLineEdges(fileDir);
-				if (cmd.hasOption("T"))
-					graph.PrintTestRequirements(fileDir);
-				if (cmd.hasOption("t"))
-					graph.PrintPPCandECrequirements(fileDir);
+				if (cmd.hasOption("d")) processor.setDebug(true);
+				processor.build();
+				
+				if (cmd.hasOption("g")) processor.writeGraphStructures();
+				if (cmd.hasOption("l")) processor.writeLineEdges();
+				if (cmd.hasOption("T")) processor.writeTestRequirements();
+				if (cmd.hasOption("t")) processor.writePPCandECrequirements();
 			} catch(Exception e) {
-				System.err.println("Error while processing file " + fileDir + ":");
-				System.err.println(e.getMessage());
+				System.err.println("Error while processing file " + filePath + ":");
+				throw e;
 			}
-			graph.clear();
+			processor.clear();
 		}
 	}
 
@@ -88,7 +76,7 @@ public class TRGeneration {
 
 		Scanner s = new Scanner(fstream);
 		while (s.hasNextLine()) {
-			graph.AddSrcLine(s.nextLine());
+			processor.addSourceCodeLine(s.nextLine());
 		}
 		s.close();
 		try {
@@ -98,15 +86,14 @@ public class TRGeneration {
 		}
 	}
 
-	private static List<String> readDirectory(File dir, List<String> foundFiles) {
+	private static void readDirectory(File dir) {
 		for(File f : dir.listFiles()) {
 			if (f.isDirectory()) {
-				foundFiles = readDirectory(f, foundFiles);
+				readDirectory(f);
 			}
 			else if (f.getPath().substring(f.getPath().lastIndexOf('.')+1).equals("java")) {
-				foundFiles.add(f.getPath());
+				filesToProcess.add(f.getPath());
 			}
 		}
-		return foundFiles;
 	}
 }

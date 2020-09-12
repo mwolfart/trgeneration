@@ -75,9 +75,9 @@ public class Node {
 		return (srcLinesIndex.size() > 0 ? srcLinesIndex.get(srcLinesIndex.size() - 1) : srcLineIdx);
 	}
 	
-	public void fixLinesIndex(List<Map<Integer, List<Integer>>> mappings) {
+	public void fixLinesIndex(Map<Integer, List<Integer>> mapping) {
 		for(int i = srcLineIdx; i < srcLineIdx+getNumLines(); i++) {
-			List<Integer> tgtLines = mappings.get(mappings.size()-1).get(i);
+			List<Integer> tgtLines = mapping.get(i);
 			for(int tgt : tgtLines) {
 				srcLinesIndex.add(tgt);
 			}

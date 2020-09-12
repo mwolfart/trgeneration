@@ -1,788 +1,712 @@
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class Graph {
-	private List<String> sourceCode;
-	private List<MethodGraph> methodGraphs;
-	private List<Integer> emptyLines;
+	private List<Node> nodes;
+	private List<Edge> edges;
+	private List<Edge> lineEdges;
+	private String methodName;
+	private String methodSignature;
+	private String className;
+	private List<String> methodLines;
+	private Boolean printDebug;
+	private Boolean asLines = false;
 	
-	private List<Map<Integer, List<Integer>>> lineMappings = new ArrayList<Map<Integer, List<Integer>>>();
-	
-	private boolean printDebug;
-	
-	public Graph() {
-		sourceCode = new ArrayList<String>();	
-		methodGraphs = new ArrayList<MethodGraph>();
-		emptyLines = new ArrayList<Integer>();
-		printDebug = false;
+	public Graph(
+			String _methodName,
+			String _methodSignature,
+			String _className,
+			List<String> _mL,
+			Boolean _pD) {
+		nodes = new ArrayList<Node>();
+		edges = new ArrayList<Edge>();
+		lineEdges = new ArrayList<Edge>();
+		methodName = _methodName;
+		methodSignature = _methodSignature;
+		className = _className;
+		methodLines = _mL;
+		printDebug = _pD;
 	}
 	
-	public void setDebug(boolean d){ printDebug = d; }
-	
-	// Add a line of source code
-	public void AddSrcLine(String line){
-		sourceCode.add(line);
+	public void SetNodes(List<Node> nodeList) {
+		nodes = nodeList;
 	}
 	
-	public void clear() {
-		sourceCode.clear();
-		methodGraphs.clear(); // TODO correct cleanup?
-		emptyLines.clear();
-		lineMappings.clear();
+	public void computeNodes() {
+		getNodes();
+		numberNodes();
+		combineNodes();
+		fixNumbering();
 	}
-		
-	public void dump() {
-		for(int n=0; n<lineMappings.size(); n++) {
-			System.out.println("Mapping #" + n);
-			for(int key : lineMappings.get(n).keySet()) {				
-				System.out.println(" | " + key + " -> " + lineMappings.get(n).get(key));
+	
+	public String GetClassName() {
+		return className;
+	}
+	
+	public String GetMethodName() {
+		return methodName;
+	}
+	
+	public String GetMethodSignature() {
+		return methodSignature;
+	}
+	
+	// Get the first entry node
+	public Node GetEntryNode() {
+		Iterator<Node> iterator = nodes.iterator();
+		Node node;
+		while(iterator.hasNext()) {
+			node = iterator.next();
+			//System.out.println("GetEntryNode = " + node);
+			if(node.isEntry() == true) {
+				return node;
 			}
 		}
-		dumpsrc();
+		return null;
 	}
 	
-	public void dumpsrc() {
-		for(int n=0; n<sourceCode.size(); n++) {
-			System.out.println(sourceCode.get(n));
+	// Get all the entry node list
+	public List<Node> GetEntryNodeList() {
+		List<Node> node_list = new LinkedList<Node>();
+		Iterator<Node> iterator = nodes.iterator();
+		Node node;
+		while(iterator.hasNext()) {
+			node = iterator.next();
+			//System.out.println("GetEntryNode = " + node);
+			if(node.isEntry() == true) {
+				node_list.add(node);
+			}
+		}
+		return node_list;
+	}
+	
+	// Get the first exit node
+	public Node GetExitNode() {
+		Iterator<Node> iterator = nodes.iterator();
+		Node node;
+		while(iterator.hasNext()) {
+			node = iterator.next();
+			//System.out.println(node);
+			if(node.isExit() == true) {
+				return node;
+			}
+		}
+		return null;
+	}
+	
+	// Get all the exit node list
+	public List<Node> GetExitNodeList() {
+		List<Node> node_list = new LinkedList<Node>();
+		Iterator<Node> iterator = nodes.iterator();
+		Node node;
+		while(iterator.hasNext()) {
+			node = iterator.next();
+			//System.out.println(node);
+			if(node.isExit() == true) {
+				node_list.add(node);
+			}
+		}
+		return node_list;
+	}
+	
+	// Get edge list that start from Node "_node"
+	public List<Edge> GetEdgeStartFrom(Node _node) {
+		List<Edge> chosenEdges = new LinkedList<Edge>();
+		Iterator<Edge> iterator = edges.iterator();
+		Edge edge;
+		while(iterator.hasNext()) {
+			edge = iterator.next();
+			if(edge.GetStart() == _node.GetNodeNumber()) {
+				chosenEdges.add(edge);
+				//System.out.println("Node num = " + _node.GetNodeNumber() + ", Edge = " + edge);
+			}
+		}
+		return chosenEdges;
+	}
+	
+	// Get edge list that start from line "lineId"
+	public List<Edge> GetLineEdgesStartingOn(int lineId) {
+		List<Edge> foundEdges = new ArrayList<Edge>();
+		for (Edge e : lineEdges) {
+			if (e.GetStart() == lineId) {
+				foundEdges.add(e);
+			}
+		}
+		return foundEdges;
+	}
+	
+	// Get the node with a specified node number
+	public Node GetNode(int _node_num) {
+		Iterator<Node> iterator = nodes.iterator();
+		Node node;
+		while(iterator.hasNext()) {
+			node = iterator.next();
+			//System.out.println(node);
+			if(node.GetNodeNumber() == _node_num) {
+				return node;
+			}
+		}
+		return null;
+	}
+	
+	public void fixLineNumbers(int incAmount, Map<Integer, List<Integer>> mapping) {
+		for(int i=0; i<nodes.size(); i++) {
+			nodes.get(i).SetSrcLineIdx(nodes.get(i).GetSrcLineIdx()+incAmount);
+			nodes.get(i).fixLinesIndex(mapping);
 		}
 	}
 	
-	public void dumpblockids(List<Pair<Integer, Integer>> blockList) {
-		for(Pair<Integer, Integer> blocklimits : blockList) {
-			int start = blocklimits.getLeft();
-			int end = blocklimits.getRight();
-			List<Integer> startO = lineMappings.get(lineMappings.size()-1).get(start);
-			List<Integer> endO = lineMappings.get(lineMappings.size()-1).get(end);
-			for(int i=0; i<startO.size(); i++) {
-				startO.set(i, startO.get(i)+1);
-			}
-			for(int i=0; i<endO.size(); i++) {
-				endO.set(i, endO.get(i)+1);
-			}
-			System.out.println(startO + " " + endO);
-		}
+	public int getAmountOfNodes() {
+		return nodes.size();
 	}
 	
-	public void build(String folder) {
-		cleanup();
-		addDummyNodes();
-		buildFullMap();
-		buildReverseFullMap();
+	public void writePng() {
+		String fileName = methodSignature.replace("<", "{").replace(">", "}");
+		writePng(className + "/" + fileName + ".png");
+	}
+	
+	public void writePng(String path) {
+		String strDOT = generateDOT();
 		
-		List<Pair<Integer, Integer>> classesBlocks = getClassesBlocks();
-		
-		for (int i=0; i < classesBlocks.size(); i++) {
-			Pair<Integer, Integer> classBlockLimits = classesBlocks.get(i);
-			int start = classBlockLimits.getLeft();
-			int end = classBlockLimits.getRight();
-			String className = getClassNameFromLineId(start);
-			Helper.createDir(folder + className);
-			
-			List<Pair<Integer, Integer>> methodBlocks = getMethodBlocks(start, end);
-
-			for (int j=0; j < methodBlocks.size(); j++) {
-				// TODO parse method parameters
-				int methodBlockStart = methodBlocks.get(j).getLeft();
-				int methodBlockEnd = methodBlocks.get(j).getRight();		
-				// TODO: is it right to ignore method signature and last bracket?
-				String methodName = getMethodNameFromLineId(methodBlockStart);
-				String methodParams = getMethodParamsFromLineId(methodBlockStart);
-				String methodSignature = methodName + methodParams;
+		if (printDebug) System.out.println("\n***** Generated DOT Code:\n\n"+strDOT+"\n\n");
 				
-				String folderName = methodSignature.replace("<", "{").replace(">", "}");
-				Helper.createDir(folder + className + "\\" + folderName);
+		File out = new File(path);
+		
+		GraphViz gv = new GraphViz();
+		gv.writeGraphToFile(gv.getGraph(strDOT, "png"), out);
+	}
+	
+	public String PrintNodes() {
+		String output = "";
+		Iterator<Node> iterator = nodes.iterator();
+		Node node;
+		while(iterator.hasNext()) {
+			node = iterator.next();
+			output += " " + node;
+		}
+		return output;
+	}
+	
+	public String PrintEdges() {
+		String output = "";
+		Iterator<Edge> iterator = edges.iterator();
+		Edge edge;
+		while(iterator.hasNext()) {
+			edge = iterator.next();
+			output += " " + edge;
+		}
+		return output;
+	}
+	
+	public String PrintGraphStructure(Map<Integer, List<Integer>> mapping) {
+		String output = "";
+		for (Node node : nodes) {
+			output += "Printing source code present in node #" + node.GetNodeNumber() + "...\n";
+			String unifiedLines = node.GetSrcLine();
+			String[] lines = unifiedLines.split("\n");
+			
+			for(int i=0; i < lines.length ; i++) {
+				String line = lines[i];
+				line.replace("%forcenode%", "[FOR component] ");
+				Integer curLineId = node.GetSrcLineIdx() + i;
+				List<Integer> originalLines = Helper.incOneToAll(mapping.get(curLineId));
+				output += " - Code `" + line + "` originally present at line(s) " + 
+						originalLines + "\n";
+			}
+			output += "End of source code for node " + node.GetNodeNumber() + "\n\n";		
+		}
+		output += "=========\n\n";
+		return output;
+	}
+	
+	public String PrintLineEdges(Map<Integer, List<Integer>> mapping) {
+		List<Pair<Integer, Integer>> edgeList = new ArrayList<>();
+		List<Integer> entries = new ArrayList<>();
+		List<Integer> exits = new ArrayList<>();
+		
+		for (Node node : nodes) {
+			if (node.isEntry()) {
+				entries.add(node.GetNodeNumber());
+			}
+			if (node.isExit()) {
+				exits.add(node.GetNodeNumber());
+			}
+			
+			// get edges in node lines
+			String unifiedLines = node.GetSrcLine();
+			String[] lines = unifiedLines.split("\n");
+
+			Integer curLineId = node.GetSrcLineIdx();
+			List<Integer> originalLines = Helper.incOneToAll(mapping.get(curLineId));			
+			for(int j=0; j < originalLines.size()-1; j++) {
+				edgeList.add(new ImmutablePair<Integer, Integer>(originalLines.get(j), originalLines.get(j+1)));
+			}
+			int lastLineId = originalLines.get(originalLines.size()-1);
+			
+			for(int i=1; i < lines.length-1 ; i++) {
+				curLineId = node.GetSrcLineIdx() + i;
+				originalLines = Helper.incOneToAll(mapping.get(curLineId));
+				edgeList.add(new ImmutablePair<Integer, Integer>(lastLineId, originalLines.get(0)));
+				for(int j=0; j < originalLines.size()-1; j++) {
+					edgeList.add(new ImmutablePair<Integer, Integer>(originalLines.get(j), originalLines.get(j+1)));
+				}
+				lastLineId = originalLines.get(originalLines.size()-1);
+			}
+			
+			List<Integer> tgtNodes = getTargetsOfNode(node.GetNodeNumber());
+			for (Integer tgt : tgtNodes) {
+				int tgtLineId = nodes.get(tgt).GetSrcLineIdx();
+				List<Integer> tgtLines = Helper.incOneToAll(mapping.get(tgtLineId));
+				edgeList.add(new ImmutablePair<Integer, Integer>(lastLineId, tgtLines.get(0)));
+			}
+		}
+		
+		String output = "";
+		for (Pair<Integer, Integer> p : edgeList) {
+			output += (p.getLeft() + " -> " + p.getRight()) + "\n";
+		}
+		
+		output += "Entry lines: ";
+		for (Integer entry : entries) {
+			output += entry + " ";
+		}
+		output += "\n";
+		
+		output += "Exit lines: ";
+		for (Integer exit : exits) {
+			output += exit + " ";
+		}
+		output += "\n\n";
+		
+		return output;
+	}
+	
+	public void generateLineEdges() {
+		for (Node n : nodes) {
+			List<Integer> lines = n.GetSrcLinesIndex();
+			for (int i = 1; i < lines.size(); i++) {
+				lineEdges.add(new Edge(lines.get(i-1)+1, lines.get(i)+1));
+			}
+		}
+		
+		for (Edge e : edges) {
+			Node src = nodes.get(e.GetStart());
+			Node tgt = nodes.get(e.GetEnd());
+			Integer srcLine = src.GetLastLineId();
+			Integer tgtLine = tgt.GetSrcLinesIndex().get(0);
+			if (srcLine != tgtLine) {
+				lineEdges.add(new Edge(srcLine+1, tgtLine+1));
+			}
+		}
+	}
+	
+	// TODO maybe not replace current setting
+	public void ProcessAsLines() {
+		if (asLines) return;
+		asLines = true;
+		
+		int entryLine = GetEntryNode().GetSrcLinesIndex().get(0)+1;
+		List<Integer> exitLines = new ArrayList<Integer>();
+
+		for (Node n : nodes) {
+			if (n.isExit()) {
+				exitLines.add(n.GetSrcLinesIndex().get(0)+1);
+			}
+		}
+
+		nodes.clear();
+		edges = lineEdges;
+		List<Integer> addedNodes = new ArrayList<Integer>();
+		
+		for (Edge e : edges) {
+			Node startNode = new Node(e.GetStart(), "", entryLine == e.GetStart(), exitLines.contains(e.GetStart()));
+			Node endNode = new Node(e.GetEnd(), "", entryLine == e.GetEnd(), exitLines.contains(e.GetEnd()));
+			
+			if (!addedNodes.contains(e.GetStart())) {
+				nodes.add(startNode);
+				addedNodes.add(e.GetStart());
+			}
+			if (!addedNodes.contains(e.GetEnd())) {
+				nodes.add(endNode);
+				addedNodes.add(e.GetEnd());
+			}
+		}
+
+		if (edges.isEmpty() && exitLines.contains(entryLine)) {
+			nodes.add(new Node(entryLine, "", true, true));
+		}
+	}
+	
+	private List<Integer> getTargetsOfNode(int src) {
+		List<Integer> targets = new ArrayList<Integer>();
+		for (Edge edge : edges) {
+			if (edge.GetStart() == src) {
+				targets.add(edge.GetEnd());
+			}
+		}
+		return targets;
+	}
+	
+	private void getNodes(){
+		if (printDebug){
+			String outlines="\n***** Processed Source Code:\n\n";
+			for (int i=0; i<methodLines.size(); i++) outlines += i+": "+methodLines.get(i)+"\n";
+			System.out.printf("%s\n", outlines);
+		}
+		
+		List<Integer> conditionalStartLines = new ArrayList<Integer>();
+		List<List<Integer>> edgeStartLinesList = new ArrayList<List<Integer>>();
+		
+		for (int i=0; i<methodLines.size(); i++){
+			
+			String line = methodLines.get(i);
+			
+			//if we find a close brace, need to figure out where to go from here
+			if (line.matches("}")){
 				
-				List<String> methodBody = getNextMethodBody(methodBlockStart+1, methodBlockEnd-1);
-				MethodGraph methodGraph = new MethodGraph(methodName, methodSignature, className, methodBody, printDebug);
+				//find the opening
+				int openline = findStartOfBlock(i-1, true);
 				
-				methodGraph.computeNodes();
-				methodGraph.fixLineNumbers(methodBlockStart+1, lineMappings);
-				methodGraph.generateLineEdges();
-				methodGraph.writePng();
-				methodGraphs.add(methodGraph);	
-			}
-		}
-	}
-	
-	public void PrintGraphStructures(String folder) {
-		for(MethodGraph graph : methodGraphs) {
-			String className = graph.GetClassName();
-			String methodSignature = graph.GetMethodSignature();
-			
-			String output = "Test Requirements for class " + className
-					+ " method " + methodSignature + ":\n\n";
-			output += graph.PrintGraphStructure(lineMappings);
+				//for loops, add an edge back to the start
+				if (methodLines.get(openline).toLowerCase().matches("^\\b(for|while|do)\\b.*")){
+					if (methodLines.get(openline).toLowerCase().matches("^\\b(for|while)\\b.*")){
+						addEdge(getPrevLine(i),openline);	
+						addEdge(openline,getNextLine(i));
+					}
+					else if (methodLines.get(i+1).toLowerCase().matches("^\\b(while)\\b.*")){ //do
+						addEdge(getPrevLine(openline), getNextLine(openline)); //entry edge that skips the "do" statement
+						addEdge(getPrevLine(i),i+1); //into loop test
+						addEdge(i+1,getNextLine(openline)); //looping edge
+						addEdge(i+1,getNextLine(i+1)); //loop exit edge
+					} else {
+						System.err.println("Do without while");
+						System.exit(2);
+					}
+				}
+				
+				//for conditionals, we won't add edges until after the block.  Then link all the close braces to the end of the block
+				else if (methodLines.get(openline).toLowerCase().matches("^\\b(if|else if)\\b.*")){
+					if (methodLines.get(openline).toLowerCase().matches("^\\bif\\b.*")) {
+						edgeStartLinesList.add(new ArrayList<Integer>());
+						
+						conditionalStartLines.add(openline);
+						addEdge(openline,openline+1);
+					} else { // else if
+						int conditionalStartLine = conditionalStartLines.get(conditionalStartLines.size()-1);
+						addEdge(conditionalStartLine,openline);
+						addEdge(openline,openline+1);
+						conditionalStartLines.set(conditionalStartLines.size()-1, openline);
+					}
+					
+					//if we're not done with the conditional block, save the start of this edge until we find the end of the block
+					if (methodLines.size() > i+1 && methodLines.get(i+1).toLowerCase().matches("^\\belse\\b.*")){
+						edgeStartLinesList.get(edgeStartLinesList.size()-1).add(getPrevLine(i));
+					}
+					else{
+						for (Integer start: edgeStartLinesList.get(edgeStartLinesList.size()-1)){
+							addEdge(start, i+1);
+						}
+						edgeStartLinesList.get(edgeStartLinesList.size()-1).clear();
+						edgeStartLinesList.remove(edgeStartLinesList.size()-1);
+						conditionalStartLines.remove(conditionalStartLines.size()-1);
+						
+						addEdge(getPrevLine(i),getNextLine(i));
+						addEdge(openline,getNextLine(i));
+					}
+				}
+				else if (methodLines.get(openline).toLowerCase().substring(0,4).equals("else")){
+					if (edgeStartLinesList.size() == 0 
+							|| edgeStartLinesList.get(edgeStartLinesList.size()-1).size() == 0){
+						System.err.println("Else without if block");
+						System.exit(2);
+					}
+					edgeStartLinesList.get(edgeStartLinesList.size()-1).add(i-1);
+					
+					int conditionalStartLine = conditionalStartLines.get(conditionalStartLines.size()-1);
+					addEdge(conditionalStartLine,openline+1);
+					
+					for (Integer start: edgeStartLinesList.get(edgeStartLinesList.size()-1)){
+						addEdge(start, i+1);
+					}
+					
+					edgeStartLinesList.get(edgeStartLinesList.size()-1).clear();
+					edgeStartLinesList.remove(edgeStartLinesList.size()-1);
+					conditionalStartLines.remove(conditionalStartLines.size()-1);
+				}
+				else if (methodLines.get(openline).toLowerCase().matches("^\\bswitch\\b.*")){
 
-			methodSignature = methodSignature.replace("<", "{");
-			methodSignature = methodSignature.replace(">", "}");
+					//add edges to cases
+					for (int k=openline; k<i; k++){ //iterate through the case statement
+						if (methodLines.get(k).matches("^\\b(case|default)\\b.*")){
+							if (methodLines.get(k).matches(":$")) addEdge(openline,k);
+							else addEdge(openline,getNextLine(k));  //didnt't split lines at : so could be the next line
+						}
+						if (methodLines.get(k).matches("^\\bbreak\\b;")) addEdge(k,getNextLine(i));
+					}
+				}
+			}
 			
-			String filePath = folder + className + "/" + methodSignature + "/graphStructure.txt";
-			writeFile(filePath, output);
+			else{
+				//TODO REMOVE AND CHECK IF IT CREATES SEPARATE NODES
+				
+				//we'll add a node and an edge unless these are not executable lines
+				if (!methodLines.get(i).toLowerCase().matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*")){
+					addNode(line,i);
+					if (i>0 && !methodLines.get(getPrevLine(i)).toLowerCase().matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*") && !methodLines.get(i-1).equals("}")){
+						addEdge(getPrevLine(i), i);
+					}
+					
+				}
+			}
+						
 		}
-	}
-	
-	public void PrintPPCandECrequirements(String folder) {
-		TestRequirements tr = new TestRequirements();
 		
-		for(MethodGraph graph : methodGraphs) {
-			tr.ReadGraph(graph);
-			
-			String className = graph.GetClassName();
-			String methodSignature = graph.GetMethodSignature();
-			methodSignature = methodSignature.replace("<", "{");
-			methodSignature = methodSignature.replace(">", "}");
+		// remove entry edges
+		for (int i=0;i<edges.size();i++)
+			if (edges.get(i).GetStart() < 0) edges.remove(i);
 
-			tr.allowLineBreaksBetweenSets();
-			
-			String output = "";
-			output += tr.PrintEdgeCoverage();
-			String filePath = folder + className + "/" + methodSignature + "/EC.txt";
-			writeFile(filePath, output);
-			
-			output = tr.PrintPrimePathCoverage();
-			output += "\n";
-			filePath = folder + className + "/" + methodSignature + "/PPC.txt";
-			writeFile(filePath, output);
+		// remove any duplicates.  this is very naughty but our list is relatively small
+		for (int i=0; i<edges.size();i++){
+			for (int j=i+1; j<edges.size(); j++){
+				if (edges.get(j).GetStart() == edges.get(i).GetStart() && edges.get(j).GetEnd() == edges.get(i).GetEnd()) edges.remove(j);
+			}
+		}
+		
+		//fix any returns before the last line
+		for (int i=0; i<nodes.size(); i++) {
+			if (Helper.lineContainsReservedWord(nodes.get(i).GetSrcLine(), "return")) {
+				//mark node as an exit node
+				Node n = nodes.get(i);
+				n.SetExit(true);
+				nodes.set(i,n);
+				
+				//remove any lines coming from that node
+				for (int j=0; j<edges.size(); j++){
+					if (edges.get(j).GetStart() == n.GetSrcLineIdx()) edges.remove(j);
+				}
+			}
+		}
+		
+		if (printDebug){
+			System.out.print("\n***** Edges:\n   - numbers correspond to processed source code line numbers (above)\n   - basic block nodes not yet combined\n\n");
+			for (Edge e: edges) System.out.println("("+e.GetStart()+","+e.GetEnd()+")");
 		}
 	}
 	
-	public void PrintTestRequirements(String folder) {
-		TestRequirements tr = new TestRequirements();
+	private void combineNodes() {
+		//add entry edge temporarily to prevent combination of loop nodes
+		addEdge(-1,0);
+	
+		//add dummy end nodes if needed
+		for (Edge e: edges){
+		boolean foundEnd=false;
+			for (Node n: nodes){
+				if (e.GetEnd() == n.GetNodeNumber()) foundEnd=true;				
+			}
+			if (!foundEnd){
+				Node n = new Node();
+				n.SetSrcLine("");
+				n.SetNodeNumber(e.GetEnd());
+				nodes.add(n);
+			}
+		}
 		
-		for(MethodGraph graph : methodGraphs) {
-			tr.ReadGraph(graph);
+		//figure out how many edges each node has (to and from the node)
+		for (int i=0; i<nodes.size(); i++){
+			for (Edge e: edges){
+				if (e.GetStart() == nodes.get(i).GetNodeNumber()) nodes.get(i).IncEdgesFrom();
+				if (e.GetEnd() == nodes.get(i).GetNodeNumber()) nodes.get(i).IncEdgesTo();
+			}
+		}
+		
+		// for any pair of consecutive nodes that have only 1 edge between, combine them
+		
+		for (int i=0; i<nodes.size(); i++){
 			
-			String className = graph.GetClassName();
-			String methodSignature = graph.GetMethodSignature();
+			// if there's more than one edge (or no edges) leaving this node, we can't combine
+			if (nodes.get(i).GetEdgesFrom() != 1 || nodes.get(i).GetSrcLine().contains("%forcenode%")) continue;
+			
+			// find the edge leaving this node
+			int midEdge = 0;
+			while (midEdge < edges.size() && edges.get(midEdge).GetStart() != nodes.get(i).GetNodeNumber()) midEdge++;
+			int nextNode = 0;
+			while (nodes.get(nextNode).GetNodeNumber() != edges.get(midEdge).GetEnd()) nextNode++;
+			
+			// if there's more than one edge entering the next node, we can't combine
+			if (nodes.get(nextNode).GetEdgesTo() > 1 || nodes.get(nextNode).GetSrcLine().contains("%forcenode%")) continue;
+			
+			// if it's a self-loop we can't combine
+                        if (nextNode == i) continue;	
 
-			String output = "Test Requirements for class " + className
-					+ " method " + methodSignature + ":\n\n";
-			output += "TR for Node coverage: " + tr.PrintNodeCoverage();
-			output += "TR for Edge coverage: " + tr.PrintEdgeCoverage();
-			output += "TR for Edge-Pair coverage: " + tr.PrintEdgePairCoverage();
-			output += "TR for Prime Path coverage: " + tr.PrintPrimePathCoverage();
-			output += "\n";
-
-			methodSignature = methodSignature.replace("<", "{");
-			methodSignature = methodSignature.replace(">", "}");
+			// If we got here we can combine the nodes
+						
+			//copy the sourceline (we'll delete nextNode)
+			nodes.get(i).SetSrcLine(nodes.get(i).GetSrcLine()+"\n"+nodes.get(nextNode).GetSrcLine());
+			nodes.get(i).GetSrcLinesIndex().addAll(nodes.get(nextNode).GetSrcLinesIndex());
 			
-			String filePath = folder + className + "/" + methodSignature + "/testRequirements.txt";
-			writeFile(filePath, output);
-		}
-	}
-	
-	public void PrintLineEdges(String folder) {
-		for(MethodGraph graph : methodGraphs) {
-			String className = graph.GetClassName();
-			String methodSignature = graph.GetMethodSignature();
-			
-			String output = "Printing line edges for class " 
-					+ className + " method " + methodSignature + "...\n";
-			output += graph.PrintLineEdges(lineMappings);
-
-			methodSignature = methodSignature.replace("<", "{");
-			methodSignature = methodSignature.replace(">", "}");
-			
-			String filePath = folder + className + "/" + methodSignature + "/lineEdges.txt";
-			writeFile(filePath, output);
-		}
-	}
-	
-	private void writeFile(String filePath, String content) {
-		try {
-			File file = new File(filePath);
-			FileWriter fr = new FileWriter(file, true);
-			fr.write(content);
-			fr.close();
-		} catch (IOException e) {
-			System.err.println("Error in writing file " + filePath);
-		}
-	}
-	
-	/* TODO: Support class inside classes */
-	private List<Pair<Integer, Integer>> getClassesBlocks() {
-		List<Pair<Integer, Integer>> classesBlocks = new ArrayList<Pair<Integer, Integer>>();
-		for (int i=0; i<sourceCode.size(); i++) {
-			if (sourceCode.get(i).matches("^[ \\t]*((public|private|protected)\\s+)?(static\\s+)?(final\\s+)?class\\s.*")) {
-				int start = i;
-				int end = findEndOfBlock(i+1); // TODO might be problem if { } is in same line
-				classesBlocks.add(new ImmutablePair<Integer, Integer>(start, end));
+			// get all the edges leaving the next node
+			List<Integer> outEdges = new ArrayList<Integer>();
+			for (int j=0; j<edges.size(); j++){
+				if (edges.get(j).GetStart() == nodes.get(nextNode).GetNodeNumber()) outEdges.add(j);
 			}
-		}
-		return classesBlocks;
-	}
-	
-	/* TODO: Support methods/functions inside methods */
-	/* TODO: maybe refactor with previous function */
-	private List<Pair<Integer, Integer>> getMethodBlocks(int classStartLineId, int classEndLineId) {
-		List<Pair<Integer, Integer>> methodBlocks = new ArrayList<Pair<Integer, Integer>>();
-		for (int i=classStartLineId; i<classEndLineId; i++) {
-			// TODO not all methods contain a scope, default is protected
-			if (!Helper.lineContainsReservedWord(sourceCode.get(i), "(if|while|for|class|switch)")
-					&& sourceCode.get(i).matches(".*[a-zA-Z][a-zA-Z0-9]*\\s*\\(.*\\)\\s*\\{$")) {
-				int start = i;
-				int end = findEndOfBlock(i+1);
-				methodBlocks.add(new ImmutablePair<Integer, Integer>(start, end));
+			nodes.get(i).ClearEdgesFrom();
+			if (outEdges.size() > 0){ //if false, this is the last node
+				// relink the outbound edges to start at the first node
+				for (int idx: outEdges){
+					edges.set(idx, new Edge(nodes.get(i).GetNodeNumber(), edges.get(idx).GetEnd()));
+					nodes.get(i).IncEdgesFrom();
+				}
 			}
+			
+			// remove old middle edge and second node
+			edges.remove(midEdge);
+			nodes.remove(nextNode);
+ 
+			//keep the current node as start until we can't combine any more
+			i--;
+			
 		}
-		return methodBlocks;
+
+		//delete the temporary entry edge
+		edges.remove(edges.size()-1);
+		
 	}
 
-	private List<String> getNextMethodBody(int startLineId, int endLineId) {
-		List<String> methodBody = new ArrayList<String>();
-		for (int i=startLineId; i<=endLineId; i++) {
-			methodBody.add(sourceCode.get(i));
-		}
-		return methodBody;
-	}
-	
-	private String getClassNameFromLineId(int lineId) {
-		String line = sourceCode.get(lineId);
-		int start = line.indexOf("class") + 6;
-		int idx = start;
-		int end = -1;
+	private void numberNodes() {
+		//save the oldedges and clear edges
+		List<Edge> oldedges = new ArrayList<Edge>();
+		for (Edge e: edges) oldedges.add(new Edge(e.GetStart(), e.GetEnd()));
+		edges.clear();
 		
-		while (idx < line.length() && end == -1) {
-			if(!Character.isDigit(line.charAt(idx)) && !Character.isLetter(line.charAt(idx))) 
-				end = idx-1;
-			idx++;
+		//number the nodes and add edges with new numbers
+		
+		//First assign node numbers
+		for (int i=0; i<nodes.size(); i++){
+			Node n = nodes.get(i);
+			n.SetNodeNumber(i);
+			nodes.set(i, n);
 		}
 		
-		if (end == -1){
-			System.err.println("Invalid class name");
-			System.err.println("When trying to get class name at line " + lineId);
-			System.exit(2);
-		}
-		
-		return line.substring(start, end+1);
-	}
-	
-	private String getMethodNameFromLineId(int lineId) {
-		String line = sourceCode.get(lineId);
-		int end = line.indexOf("(");
-		int idx = end;
-		int start = -1;
-		boolean foundName = false;
-		
-		while (idx > 0 && start == -1) {
-			if (!foundName && line.charAt(idx) != ' ') {
-				foundName = true;
-				end = idx;
-			}
-			if (foundName && line.charAt(idx) == ' ') 
-				start = idx+1;
-			idx--;
-		}
-		
-		if (start == -1){
-			System.err.println("Invalid method name");
-			System.err.println("When trying to get method name at line " + lineId);
-			System.exit(2);
-		}
-		
-		return line.substring(start, end);
-	}
-	
-	private String getMethodParamsFromLineId(int lineId) {
-		String line = sourceCode.get(lineId);
-		int start = line.indexOf("(");
-		int end = line.lastIndexOf(")");		
-		return line.substring(start, end+1);
-	}
-	
-	//trim all lines (remove indents and other leading/trailing whitespace)
-	// #n -> #n
-	private void trimLines() {
-		for (int i=0; i<sourceCode.size(); i++){
-			sourceCode.set(i, sourceCode.get(i).trim());
-		}
-	}
-	
-	// #n -> #n
-	private void eliminateComments() {		
-		for (int i=0; i<sourceCode.size(); i++) {
-			int idxSingle = sourceCode.get(i).indexOf("//"); 
-			int idxMulti = sourceCode.get(i).indexOf("/*");
-			int idx = (idxSingle >= 0 && idxMulti >= 0) ? 
-					Math.min(idxSingle, idxMulti) : Math.max(idxSingle, idxMulti);
+		//add edges using node_numbers instead of source line index
+		for (int i=0; i<oldedges.size(); i++){
+			int newStart=0;
+			int newEnd=0;
 			
-			if (idx == -1) {
-				continue;
-			} else if (idx == idxSingle) {
-				sourceCode.set(i, sourceCode.get(i).substring(0, idx)); 
-			} else {
-				i = eraseMultiLineComment(i, idx);
-			}
+			while (newStart < nodes.size() && nodes.get(newStart).GetSrcLineIdx() != oldedges.get(i).GetStart()) newStart++;
+			while (newEnd < nodes.size() && nodes.get(newEnd).GetSrcLineIdx() != oldedges.get(i).GetEnd()) newEnd++;
+			
+			addEdge(newStart,newEnd);
 		}
+		
 	}
-		
-	private int eraseMultiLineComment(int startLine, int idxStart) {
-		String preceding = sourceCode.get(startLine).substring(0, idxStart);
-		
-		boolean closingBlockFound = false;
-		int i = startLine, idxClosing = 0;
-		
-		while(!closingBlockFound) {
-			idxClosing = sourceCode.get(i).indexOf("*/");
-			if (idxClosing != -1) {
-				closingBlockFound = true;
-			} else if (i != startLine) {
-				sourceCode.set(i, "");
+
+	private void fixNumbering() {
+		//Renumber the nodes, and the edges accordingly
+		for (int i=0; i<nodes.size(); i++){
+			Node n = nodes.get(i);
+			for (int j=0; j<edges.size(); j++){
+				if (edges.get(j).GetStart() == n.GetNodeNumber()) edges.set(j, new Edge(i, edges.get(j).GetEnd()));
+				if (edges.get(j).GetEnd() == n.GetNodeNumber()) edges.set(j, new Edge(edges.get(j).GetStart(), i));
 			}
-			i++;
+			n.SetNodeNumber(i);
+			nodes.set(i, n);
 		}
-		int endLine = i-1;
-		String trailing = sourceCode.get(endLine).substring(idxClosing+2);
-		
-		if (endLine == startLine) {
-			sourceCode.set(startLine, preceding + trailing);
-		} else {
-			sourceCode.set(startLine, preceding);
-			sourceCode.set(endLine, trailing);
+	
+		nodes.get(0).SetEntry(true);
+	
+		// mark entry and exits
+		for (int i=0;i<nodes.size(); i++){
+			boolean exit = true;
+			for (Edge e: edges){
+				if (e.GetStart() == nodes.get(i).GetNodeNumber()) exit = false;
+			}
+			
+			if (!nodes.get(i).isExit()) nodes.get(i).SetExit(exit); //make sure override stays for return nodes
 		}
 		
-		return endLine;
 	}
 	
-	private void removeBlankLines() {		
-		int blankLines = 0;
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-		
-		for(int i = 0; i < sourceCode.size(); i++) {
-			if (sourceCode.get(i).equals("")) {
-				blankLines++;
-				emptyLines.add(i);
-			}
-			if (sourceCode.get(i).equals("{")) {
-				emptyLines.add(i);
-			}
-			// if first line of file is blank, point to 0.
-			int targetLineId = Math.max(i-blankLines, 0);
-			mapping.put(i, initArray(targetLineId));
-		}
-		
-		lineMappings.add(mapping);
-		sourceCode.removeAll(Collections.singleton(""));
-	}
-	
-	// convert ternary operations into ifs
-	// ifs are inserted in the same lines, so no mapping needs to be done
-	
-	// TODO since this is a hard operation to make, I'm leaving it for later
 	/*
-	private void convertTernaries() {
-		int a = 1 > 2 ? 3 : 4;
-		for(int i = 0; i < sourceCode.size(); i++) {
-			String curLine = sourceCode.get(i);
-			if (Helper.lineContainsReservedWord(curLine, "(.*?[^\\{\\}]*:.*)"));
+	private void fixNodesAndEdgesNumbers(int nextNodeNumber, int startingLine) {
+		for(int i=0; i<nodes.size(); i++) {
+			nodes.get(i).SetNodeNumber(nextNodeNumber+i);
+			nodes.get(i).SetSrcLineIdx(nodes.get(i).GetSrcLineIdx()+startingLine);
+		}
+		
+		for(int i=0; i<edges.size(); i++) {
+			edges.get(i).SetValues(edges.get(i).GetStart() + nextNodeNumber, edges.get(i).GetEnd() + nextNodeNumber);
 		}
 	}
 	*/
 	
-	//move opening braces on their own line to the previous line
-	// Note: curly bracket must be alone
-	private void moveOpeningBraces() {
-		int numRemovedLines = 0;
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-
-		for (int i=0; i<sourceCode.size(); i++){
-			int oldLineId = i+numRemovedLines;
+	private String generateDOT() {
+		String strDOT = "digraph cfg{\n";
+		
+		for (Node n: nodes){
+			String line = "";
 			
-			if (sourceCode.get(i).equals("{")){
-				sourceCode.set(i-1, sourceCode.get(i-1) + "{");
+			//attributes
+			if (n.isEntry()){
+				line += "\tstart [style=invis];\n\tstart -> "+n.GetNodeNumber()+";\n"; // invisible entry node required to draw the entry arrow
 				
-				mapping.put(oldLineId, initArray(i-1)); 
-				numRemovedLines++;
-				
-				sourceCode.remove(i);
-				i--;
-			} else {
-				mapping.put(oldLineId, initArray(i));
 			}
-		}
-
-		lineMappings.add(mapping);
-	}
-
-	//move any code after an opening brace to the next line
-	private void moveCodeAfterOpenedBrace() {
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-		int numAddedLines = 0;
-		
-		for (int i=0; i<sourceCode.size(); i++) {
-			int oldLineId = i-numAddedLines;
-
-			// add current line to targets
-			List<Integer> targetLinesIds = (mapping.containsKey(oldLineId) ? 
-					mapping.get(oldLineId) : new ArrayList<Integer>());
-			targetLinesIds.add(i);
+			if (n.isExit()){
+				line += "\t"+n.GetNodeNumber()+" [penwidth=4];\n"; // make the exit node bold
+			}
 			
-			// find brace and check if there is code after
-			int idx = Helper.getIndexOfReservedChar(sourceCode.get(i), "{");
-			boolean hasCodeAfterBrace = (idx > -1 
-					&& idx < sourceCode.get(i).length()-1);
+			if (n.GetSrcLine().contains("%forcelabel%")){
+			//	line += "\t"+n.node_number+" [xlabel=\"" + removeTags(n.srcline).trim() + "\",labelloc=\"c\"]"; // label the node if forced
+			}
 			
-			if (hasCodeAfterBrace){ 
-				String preceding = sourceCode.get(i).substring(0, idx+1);
-				String trailing = sourceCode.get(i).substring(idx+1);
-				sourceCode.add(i+1, trailing); //insert the text right of the { as the next line
-				sourceCode.set(i, preceding); //remove the text right of the { on the current line
-				
-				mapping.put(oldLineId, targetLinesIds);
-				numAddedLines++;
-			} else {
-				mapping.put(oldLineId, targetLinesIds);
-			}
+			if (line.length() > 0) strDOT += line;
 		}
 		
-		lineMappings.add(mapping);
+		for (Edge e: edges){
+			strDOT += "\t"+e.GetStart()+" -> "+e.GetEnd();
+			// attributes
+			strDOT += ";\n";
+		}
+		
+		strDOT += "}";
+		return strDOT;
 	}
 	
-	//move closing braces NOT starting a line to the next line
-	private void moveClosingBraces() {
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-		int numAddedLines = 0;
-		
-		for (int i=0; i<sourceCode.size(); i++){
-			int oldLineId = i-numAddedLines;
-
-			// add current line to targets
-			List<Integer> targetLinesIds = (mapping.containsKey(oldLineId) ? 
-					mapping.get(oldLineId) : new ArrayList<Integer>());
-			targetLinesIds.add(i);
-			
-			int idx = Helper.getIndexOfReservedChar(sourceCode.get(i), "}"); 
-			if (idx > 1) { //this means the } is not starting a line
-				String trailing = sourceCode.get(i).substring(idx);
-				String preceding = sourceCode.get(i).substring(0, idx);
-				sourceCode.add(i+1, trailing); //insert the text starting with the } as the next line
-				sourceCode.set(i, preceding); //remove the text starting with the } on the current line
-				
-				mapping.put(oldLineId, targetLinesIds);
-				numAddedLines++;
-			} else {
-				mapping.put(oldLineId, targetLinesIds);
-			}
-		}
-
-		lineMappings.add(mapping);
+	private void addNode(String line, int lineidx) {
+		Node node = new Node(0,line,false,false);
+		node.SetSrcLineIdx(lineidx);
+		nodes.add(node);
 	}
 	
-	//move any code after a closing brace to the next line
-	private void moveCodeAfterClosedBrace() {
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-		int numAddedLines = 0;
-		
-		for (int i=0; i<sourceCode.size(); i++){
-			int oldLineId = i-numAddedLines;
-
-			// add current line to targets
-			List<Integer> targetLinesIds = (mapping.containsKey(oldLineId) ? 
-					mapping.get(oldLineId) : new ArrayList<Integer>());
-			targetLinesIds.add(i);
-			
-			int idx = Helper.getIndexOfReservedChar(sourceCode.get(i), "}"); 
-			if (idx > -1 && sourceCode.get(i).length() > 1) { //this means there is text after the {
-				String trailing = sourceCode.get(i).substring(idx+1);
-				String preceding = sourceCode.get(i).substring(0, idx+1);
-
-				sourceCode.add(i+1, trailing); //insert the text right of the { as the next line
-				sourceCode.set(i, preceding); //remove the text right of the { on the current line
-				
-				mapping.put(oldLineId, targetLinesIds);
-				numAddedLines++;
-			} else {
-				mapping.put(oldLineId, targetLinesIds);
-			}
-		}
-		
-		lineMappings.add(mapping);
+	private void addEdge(int startidx, int endidx) {
+		edges.add(new Edge(startidx,endidx));
 	}
 
-	//Separate sourceCode with containing semicolons except at the end
-	private void separateLinesWithSemicolons() {
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-		int numAddedLines = 0;
-		
-		for (int i=0; i < sourceCode.size(); i++){
-			int oldLineId = i-numAddedLines;
-			List<Integer> targetLinesIds = new ArrayList<Integer>();
-			
-			List<String> statements = initArray(sourceCode.get(i).split(";"));
-			
-			targetLinesIds.add(i);
-			if (statements.size() > 1) {
-				boolean lineEndsWithSemicolon = sourceCode.get(i).matches("^.*;$");
-				sourceCode.set(i, statements.get(0) + ";");
-				
-				for (int j=1; j < statements.size(); j++){
-					String pause = (j == statements.size()-1 && !lineEndsWithSemicolon ? "" : ";");
-					sourceCode.add(i+j, statements.get(j) + pause);
-					targetLinesIds.add(i+j);
-				}
-				
-				mapping.put(oldLineId, targetLinesIds);
-				numAddedLines += statements.size()-1;
-				i += statements.size()-1;	// can skip what we altered already
-			} else {
-				mapping.put(oldLineId, targetLinesIds);
-			}			
-		}
-		
-		lineMappings.add(mapping);
+	private int getPrevLine(int start) {
+		int prevEdge=start-1;
+		while (prevEdge > -1 && methodLines.get(prevEdge).equals("}")) prevEdge--;
+		return prevEdge;
 	}
 	
-	private void combineMultiLineStatements() {
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-		int removedLines = 0;
-
-		for (int i=0; i < sourceCode.size(); i++) {
-			mapping.put(i+removedLines, initArray(i));
-			String curLine = sourceCode.get(i);
-			
-			while (!Helper.lineContainsReservedChar(curLine, ";")
-					&& !Helper.lineContainsReservedChar(curLine, "{") 
-					&& !Helper.lineContainsReservedChar(curLine, "}")
-					&& !((Helper.lineContainsReservedWord(curLine, "case") || Helper.lineContainsReservedWord(curLine, "default"))
-							&& Helper.lineContainsReservedChar(curLine, ":"))
-					){
-				String separator = (curLine.charAt(curLine.length()-1) != ' '
-									&& sourceCode.get(i+1).charAt(0) != ' ' ? " " : "");
-				sourceCode.set(i, curLine + separator + sourceCode.get(i+1));
-				sourceCode.remove(i+1);
-
-				removedLines++;
-				mapping.put(i+removedLines, initArray(i));
-				curLine = sourceCode.get(i);
-			}
-		}
-		
-		lineMappings.add(mapping);
-	}
-
-	//separate case statements with next line
-	private void separateCaseStatements() {
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-		int numAddedLines = 0;
-		
-		for (int i=0; i<sourceCode.size(); i++){
-			int oldLineId = i-numAddedLines;
-
-			// add current line to targets
-			List<Integer> targetLinesIds = (mapping.containsKey(oldLineId) ? 
-					mapping.get(oldLineId) : new ArrayList<Integer>());
-			targetLinesIds.add(i);
-			mapping.put(oldLineId, targetLinesIds);
-			
-			if (sourceCode.get(i).matches("^\\b(case|default)\\b.*:.*")){
-				int idx = Helper.getIndexOfReservedChar(sourceCode.get(i), ":"); // TODO test if it works in all situations
-				
-				if (sourceCode.get(i).substring(idx+1).matches("[ \t]*\\{[ \t]*")) {
-					continue;
-				}
-				
-				if (idx < sourceCode.get(i).length()-1){
-					sourceCode.add(i+1, sourceCode.get(i).substring(idx+1));
-					sourceCode.set(i, sourceCode.get(i).substring(0, idx+1));
-					numAddedLines++;
-				}
-			}
-		}
-		lineMappings.add(mapping);
+	private int getNextLine(int start) {
+		int nextEdge=start+1;
+		while (nextEdge < methodLines.size() && methodLines.get(nextEdge).equals("}")) nextEdge++;
+		return nextEdge;
 	}
 	
-	//turn for loops into while loops
-	private void convertForToWhile() {
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-		List<Integer> loopsClosingLines = new ArrayList<Integer>();
-		
-		for (int i=0; i<sourceCode.size(); i++){			
-			if (sourceCode.get(i).matches("^for.+$")){
-				int depth = loopsClosingLines.size();
-				int closingLine = findEndOfBlock(i+3);
-				
-				//move the initialization before the loop
-				mapping.put(i+depth, initArray(i));
-				int idx = sourceCode.get(i).indexOf("(");
-				sourceCode.add(i, "%forcenode%" + sourceCode.get(i).substring(idx+1));
-				i++; //adjust for insertion
-				
-				//move the iterator to just before the close
-				mapping.put(i+1+depth, initArray(closingLine-1));
-				idx = sourceCode.get(i+2).lastIndexOf(")");
-				sourceCode.add(closingLine+1, "%forcenode%" + sourceCode.get(i+2).substring(0, idx) + ";");
-				sourceCode.remove(i+2); //remove old line
-				
-				//replace for initialization with while
-				mapping.put(i+depth, initArray(i));
-				String testStatement = sourceCode.get(i+1).substring(0, sourceCode.get(i+1).length()-1).trim();
-				sourceCode.set(i, "while (" + testStatement + "){");
-				sourceCode.remove(i+1); //remove old (test) line
-
-				loopsClosingLines.add(closingLine);
-			} else {
-				int depth = loopsClosingLines.size();
-				if (depth > 0 && i == loopsClosingLines.get(depth-1) - 1) {
-					loopsClosingLines.remove(loopsClosingLines.size()-1);
-				} else {
-					mapping.put(i+depth, initArray(i));
-				}
-			}
-		}
-		
-		lineMappings.add(mapping);
-	}
-	
-	private void convertForEachToFor() {
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-		int addedLines = 0;
-		
-		for (int i=0; i<sourceCode.size(); i++){			
-			if (sourceCode.get(i).matches("^for.+$")
-					&& Helper.lineContainsReservedChar(sourceCode.get(i), ":")) {
-				List<String> forEachInformation = extractForEachInfo(sourceCode.get(i));
-				String type = forEachInformation.get(0);
-				String varName = forEachInformation.get(1);
-				String setName = forEachInformation.get(2);
-				
-				mapping.put(i - addedLines, new ArrayList<>(Arrays.asList(i, i+1)));
-				sourceCode.set(i, "for (Iterator<" + type + "> it = " + setName + ".iterator(); it.hasNext(); ){");
-				sourceCode.add(i+1, type + " " + varName + " = it.next();");
-				addedLines++;
-				i++;
-			} else {
-				mapping.put(i - addedLines, initArray(i));
-			}
-		}
-		
-		lineMappings.add(mapping);
-	}
-	
-	// given a line containing a for each statement, collect the necessary info
-	private List<String> extractForEachInfo(String line) {
-		String buffer = "";
-		List<String> info = new ArrayList<>();
-		
-		int i;
-		for(i = 3; i < line.length() && info.size() < 2; i++) {
-			if (line.charAt(i) != '(' && line.charAt(i) != ' ' && line.charAt(i) != '\t') {
-				buffer += line.charAt(i);
-			} else if ((line.charAt(i) == ' ' || line.charAt(i) == '\t') && buffer.length() > 0) {
-				info.add(buffer);
-				buffer = "";
-			}
-		}
-		
-		while (line.charAt(i) == ':' || line.charAt(i) == ' ' || line.charAt(i) == '\t') i++;
-		int start = i;
-		int end = line.length() - 1;
-		while (line.charAt(end) == '{' || line.charAt(end) == ' ' || line.charAt(end) == '\t') end--;
-		info.add(line.substring(start, end));
-		
-		return info;
-	}
-	
-	//given line id and depth, find its last id in final source code
-	private List<Integer> getFinalTargetLineId(int id, int depth) {
-		Map<Integer, List<Integer>> currentMap = lineMappings.get(depth);
-		List<Integer> endLines = new ArrayList<Integer>(); 
-		
-		if (depth == lineMappings.size() - 1) {
-			endLines.addAll(currentMap.get(id));
-		} else {
-			List<Integer> directTargets = currentMap.get(id);
-			for (Integer target : directTargets) {
-				endLines.addAll(getFinalTargetLineId(target, depth + 1));
-			}
-		}
-		
-		return endLines;
-	}
-	
-	//build mapping original -> final state
-	private void buildFullMap() {
-		Map<Integer, List<Integer>> firstMap = lineMappings.get(0);
-		Map<Integer, List<Integer>> lastMap = new HashMap<Integer, List<Integer>>();
-		
-		for (Integer lineId : firstMap.keySet()) {
-			List<Integer> targets = new ArrayList<Integer>();
-			targets.addAll(getFinalTargetLineId(lineId, 0));
-			lastMap.put(lineId, targets);
-		}
-		
-		lineMappings.add(lastMap);
-	}
-	
-	//build mapping final -> original state
-	private void buildReverseFullMap() {
-		Map<Integer, List<Integer>> lastMap = lineMappings.get(lineMappings.size()-1);
-		Map<Integer, List<Integer>> reverseMap = new HashMap<Integer, List<Integer>>();
-		
-		for(Integer key : lastMap.keySet()) {
-			for (Integer tgt : lastMap.get(key)) {
-				if (emptyLines.contains(key)) {
-					continue;
-				} else if (reverseMap.get(tgt) != null) {
-					reverseMap.get(tgt).add(key);
-				} else {
-					reverseMap.put(tgt, initArray(key));
-				}
-			}
-		}
-		
-		lineMappings.add(reverseMap);
-	}
-	
-	//CURRENT FORMAT CONSTRAINTS:
-	//  Must use surrounding braces for all loops and conditionals
-	//  do,for,while loop supported / do-while loops not supported
-	private int cleanup() {
-		eliminateComments();
-		trimLines();
-		removeBlankLines();
-		// convertTernaries();
-		
-		// TODO trim lines each step? There are some spaces causing extra lines.
-		//  actually, in the functions, do not split if its only spaces and tabs
-		moveOpeningBraces();
-		moveCodeAfterOpenedBrace(); // TODO perform before openingBraces?
-		moveClosingBraces();
-		moveCodeAfterClosedBrace();
-		trimLines();
-		// At this point, all opening braces end a line and all closing braces are on their own line;
-
-		convertForEachToFor();
-		trimLines();
-		separateLinesWithSemicolons();
-		trimLines();
-		combineMultiLineStatements();
-		trimLines();
-		convertForToWhile();
-		trimLines();
-		separateCaseStatements();
-		trimLines();
-		
-		return Defs.success;
-	}
-	
-	/* TODO: maybe refactor the three next functions */
-	private int findStartOfBlock(int startingLine) {
-		return findStartOfBlock(startingLine, false);
-	}
-
-	/* TODO: Maybe reenginer this */
 	private int findStartOfBlock(int startingLine, boolean useBlockLines) {
 		int curLineId = startingLine;
 		int openingLine = -1;
 		int depth = 0;
 		
 		while (curLineId >= 0 && openingLine == -1) {
-			String curLine = sourceCode.get(curLineId);
+			String curLine = methodLines.get(curLineId);
 			if (Helper.lineContainsReservedChar(curLine, "}")) {
 				depth++;
 			} else if (Helper.lineContainsReservedChar(curLine, "{") && depth > 0) {
@@ -801,66 +725,4 @@ public class Graph {
 		
 		return openingLine;
 	}
-	
-	private int findEndOfBlock(int startingLine) {
-		int curLineId = startingLine;
-		int closingLine = -1;
-		int depth = 0;
-		
-		while (curLineId < sourceCode.size() && closingLine == -1) {
-			String curLine = sourceCode.get(curLineId);
-			if (Helper.lineContainsReservedChar(curLine, "{")) {
-				depth++;
-			} else if (Helper.lineContainsReservedChar(curLine, "}") && depth > 0) {
-				depth--;
-			} else if (Helper.lineContainsReservedChar(curLine, "}")) {
-				closingLine = curLineId;
-			}
-			curLineId++;
-		}
-
-		if (closingLine == -1){
-			System.err.println("Braces are not balanced");
-			System.err.println("When trying to find end of block starting at line " + (startingLine+1));
-			System.err.println("Line content: " + sourceCode.get(startingLine));
-			System.exit(2);
-		}
-		
-		return closingLine;
-	}
-	
-	private void addDummyNodes(){
-		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
-		int numAddedLines = 0;
-		
-		for (int i=0; i<sourceCode.size(); i++){
-			String line = sourceCode.get(i);
-			
-			if (Helper.lineContainsReservedChar(line, "}")){
-				//find the opening
-				int openline = findStartOfBlock(i-1);
-
-				if (sourceCode.get(openline).toLowerCase().matches("^\\b(while|do|if|else)\\b.*")
-						&& sourceCode.get(i-1).equals("}")) {
-					sourceCode.add(i, "dummy_node;");
-					numAddedLines++;
-					// i--; //adjust i due to insertion // I don't think this is needed.
-				}
-			}
-			
-			int oldLineId = i-numAddedLines;
-			mapping.put(oldLineId, initArray(i));
-		}
-		
-		lineMappings.add(mapping);
-	}
-	
-	private <T> ArrayList<T> initArray(T firstElement) {
-		return new ArrayList<T>(Arrays.asList(firstElement));
-	}
-	
-	private <T> ArrayList<T> initArray(T[] elements) {
-		return new ArrayList<T>(Arrays.asList(elements));
-	}
-		
 }
