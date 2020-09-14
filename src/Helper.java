@@ -41,23 +41,6 @@ public class Helper {
 		return match;
 	}
 	
-	public static int parseInt(String strInt) {
-		int result = -1;
-		try {
-			Integer.parseInt(strInt);
-		} catch(NumberFormatException e) {
-		}
-		return result;
-	}
-	
-	public static List<Integer> incOneToAll(List<Integer> items) {
-		List<Integer> newlist = new ArrayList<>();
-		for(Integer item : items) {
-			newlist.add(item + 1);
-		}
-		return newlist;
-	}
-	
 	public static void createDir(String dirPath) {
 		dirPath = dirPath.replace("<", "{").replace(">", "}");
 		File dir = new File(dirPath);
@@ -78,6 +61,13 @@ public class Helper {
 		} catch (IOException e) {
 			System.err.println("Error in writing file " + filePath);
 		}
+	}
+	
+	public static void writePng(String path, String dot) {
+		path = path.replace("<", "{").replace(">", "}");
+		File out = new File(path);
+		GraphViz gv = new GraphViz();
+		gv.writeGraphToFile(gv.getGraph(dot, "png"), out);
 	}
 	
 	public static <T> ArrayList<T> initArray(T firstElement) {

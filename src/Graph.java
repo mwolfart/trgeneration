@@ -1,222 +1,179 @@
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
-
 public class Graph {
 	private List<Node> nodes;
 	private List<Edge> edges;
-	private List<Edge> lineEdges;
 	private String methodName;
 	private String methodSignature;
 	private String className;
-	private List<String> methodLines;
-	private Boolean printDebug;
-	private Boolean asLines = false;
+	private List<String> methodCode;
+	private Boolean debug;
 	
 	public Graph(
 			String _methodName,
 			String _methodSignature,
 			String _className,
-			List<String> _mL,
-			Boolean _pD) {
+			List<String> _mC,
+			Boolean _d) {
 		nodes = new ArrayList<Node>();
 		edges = new ArrayList<Edge>();
-		lineEdges = new ArrayList<Edge>();
 		methodName = _methodName;
 		methodSignature = _methodSignature;
 		className = _className;
-		methodLines = _mL;
-		printDebug = _pD;
+		methodCode = _mC;
+		debug = _d;
 	}
 	
-	public void SetNodes(List<Node> nodeList) {
-		nodes = nodeList;
+	public Graph(
+			String _methodName,
+			String _methodSignature,
+			String _className,
+			Boolean _d) {
+		nodes = new ArrayList<Node>();
+		edges = new ArrayList<Edge>();
+		methodName = _methodName;
+		methodSignature = _methodSignature;
+		className = _className;
+		debug = _d;
 	}
 	
-	public void computeNodes() {
+	public void buildNodes() {
 		getNodes();
 		numberNodes();
 		combineNodes();
 		fixNumbering();
 	}
 	
-	public String GetClassName() {
+	public String getClassName() {
 		return className;
 	}
 	
-	public String GetMethodName() {
+	public String getMethodName() {
 		return methodName;
 	}
 	
-	public String GetMethodSignature() {
+	public String getMethodSignature() {
 		return methodSignature;
 	}
 	
 	// Get the first entry node
-	public Node GetEntryNode() {
-		Iterator<Node> iterator = nodes.iterator();
-		Node node;
-		while(iterator.hasNext()) {
-			node = iterator.next();
-			//System.out.println("GetEntryNode = " + node);
-			if(node.isEntry() == true) {
-				return node;
+	public Node getEntryNode() {
+		for (Node n : nodes) {
+			if (n.isEntry() == true) {
+				return n;
 			}
 		}
 		return null;
 	}
 	
-	// Get all the entry node list
-	public List<Node> GetEntryNodeList() {
-		List<Node> node_list = new LinkedList<Node>();
-		Iterator<Node> iterator = nodes.iterator();
-		Node node;
-		while(iterator.hasNext()) {
-			node = iterator.next();
-			//System.out.println("GetEntryNode = " + node);
-			if(node.isEntry() == true) {
-				node_list.add(node);
+	// Get list of all the entry nodes 
+	public List<Node> getEntryNodeList() {
+		List<Node> nodeList = new LinkedList<Node>();
+		for (Node n : nodes) {
+			if (n.isEntry() == true) {
+				nodeList.add(n);
 			}
 		}
-		return node_list;
+		return nodeList;
 	}
 	
 	// Get the first exit node
-	public Node GetExitNode() {
-		Iterator<Node> iterator = nodes.iterator();
-		Node node;
-		while(iterator.hasNext()) {
-			node = iterator.next();
-			//System.out.println(node);
-			if(node.isExit() == true) {
-				return node;
+	public Node getExitNode() {
+		for (Node n : nodes) {
+			if (n.isExit() == true) {
+				return n;
 			}
 		}
 		return null;
 	}
 	
 	// Get all the exit node list
-	public List<Node> GetExitNodeList() {
-		List<Node> node_list = new LinkedList<Node>();
-		Iterator<Node> iterator = nodes.iterator();
-		Node node;
-		while(iterator.hasNext()) {
-			node = iterator.next();
-			//System.out.println(node);
-			if(node.isExit() == true) {
-				node_list.add(node);
+	public List<Node> getExitNodeList() {
+		List<Node> nodeList = new LinkedList<Node>();
+		for (Node n : nodes) {
+			if (n.isExit() == true) {
+				nodeList.add(n);
 			}
 		}
-		return node_list;
+		return nodeList;
 	}
 	
-	// Get edge list that start from Node "_node"
-	public List<Edge> GetEdgeStartFrom(Node _node) {
+	// Get edge list that start from node
+	public List<Edge> getEdgesStartingFrom(Node node) {
 		List<Edge> chosenEdges = new LinkedList<Edge>();
-		Iterator<Edge> iterator = edges.iterator();
-		Edge edge;
-		while(iterator.hasNext()) {
-			edge = iterator.next();
-			if(edge.GetStart() == _node.GetNodeNumber()) {
-				chosenEdges.add(edge);
-				//System.out.println("Node num = " + _node.GetNodeNumber() + ", Edge = " + edge);
+		for (Edge e : edges) {
+			if (e.GetStart() == node.GetNodeNumber()) {
+				chosenEdges.add(e);
 			}
 		}
 		return chosenEdges;
 	}
-	
-	// Get edge list that start from line "lineId"
-	public List<Edge> GetLineEdgesStartingOn(int lineId) {
-		List<Edge> foundEdges = new ArrayList<Edge>();
-		for (Edge e : lineEdges) {
-			if (e.GetStart() == lineId) {
-				foundEdges.add(e);
-			}
+
+	public List<Integer> getLineIdsFromNodes(List<Node> nodeList) {
+		List<Integer> lineIds = new ArrayList<Integer>();
+		for (Node n : nodeList) {
+			lineIds.addAll(n.GetSourceCodeLineIds());
 		}
-		return foundEdges;
+		return lineIds;
 	}
 	
-	// Get the node with a specified node number
-	public Node GetNode(int _node_num) {
-		Iterator<Node> iterator = nodes.iterator();
-		Node node;
-		while(iterator.hasNext()) {
-			node = iterator.next();
-			//System.out.println(node);
-			if(node.GetNodeNumber() == _node_num) {
-				return node;
+	public Node getNode(int nodeNumber) {
+		for (Node n : nodes) {
+			if(n.GetNodeNumber() == nodeNumber) {
+				return n;
 			}
 		}
 		return null;
+		// TODO this may be O(1) if order is always guaranteed (not sure for line graphs)
+		// return nodeNumber < nodes.size() ? nodes.get(nodeNumber) : null;
 	}
 	
-	public void fixLineNumbers(int incAmount, Map<Integer, List<Integer>> mapping) {
-		for(int i=0; i<nodes.size(); i++) {
-			nodes.get(i).SetSrcLineIdx(nodes.get(i).GetSrcLineIdx()+incAmount);
-			nodes.get(i).fixLinesIndex(mapping);
+	public void setEntryNode(int nodeId) {
+		getNode(nodeId).SetEntry(true);
+	}
+	
+	public void setExitNodes(List<Integer> nodeIds) {
+		for (int id : nodeIds) {
+			Node n = getNode(id);
+			if (n != null) {
+				n.SetExit(true);
+			}
 		}
 	}
-	
-	public int getAmountOfNodes() {
-		return nodes.size();
-	}
-	
-	public void writePng() {
-		String fileName = methodSignature.replace("<", "{").replace(">", "}");
-		writePng(className + "/" + fileName + ".png");
-	}
-	
-	public void writePng(String path) {
-		String strDOT = generateDOT();
-		
-		if (printDebug) System.out.println("\n***** Generated DOT Code:\n\n"+strDOT+"\n\n");
-				
-		File out = new File(path);
-		
-		GraphViz gv = new GraphViz();
-		gv.writeGraphToFile(gv.getGraph(strDOT, "png"), out);
-	}
-	
-	public String PrintNodes() {
+
+	public String listNodes() {
 		String output = "";
-		Iterator<Node> iterator = nodes.iterator();
-		Node node;
-		while(iterator.hasNext()) {
-			node = iterator.next();
-			output += " " + node;
+		for (Node n : nodes) {
+			output += " " + n;
 		}
 		return output;
 	}
 	
-	public String PrintEdges() {
+	public String listEdges() {
 		String output = "";
-		Iterator<Edge> iterator = edges.iterator();
-		Edge edge;
-		while(iterator.hasNext()) {
-			edge = iterator.next();
-			output += " " + edge;
+		for (Edge e : edges) {
+			output += " " + e;
 		}
 		return output;
 	}
 	
-	public String PrintGraphStructure(Map<Integer, List<Integer>> mapping) {
+	public String listGraphStructure(Map<Integer, List<Integer>> mapping) {
 		String output = "";
 		for (Node node : nodes) {
 			output += "Printing source code present in node #" + node.GetNodeNumber() + "...\n";
-			String unifiedLines = node.GetSrcLine();
-			String[] lines = unifiedLines.split("\n");
+			
+			String sourceCode = node.GetSourceCode();
+			String[] lines = sourceCode.split("\n");
 			
 			for(int i=0; i < lines.length ; i++) {
 				String line = lines[i];
 				line.replace("%forcenode%", "[FOR component] ");
-				Integer curLineId = node.GetSrcLineIdx() + i;
-				List<Integer> originalLines = Helper.incOneToAll(mapping.get(curLineId));
+				Integer curLineId = node.GetStartingLineId() + i;
+				//List<Integer> originalLines = Helper.incOneToAll(mapping.get(curLineId));
+				List<Integer> originalLines = mapping.get(curLineId);
 				output += " - Code `" + line + "` originally present at line(s) " + 
 						originalLines + "\n";
 			}
@@ -226,174 +183,131 @@ public class Graph {
 		return output;
 	}
 	
-	public String PrintLineEdges(Map<Integer, List<Integer>> mapping) {
-		List<Pair<Integer, Integer>> edgeList = new ArrayList<>();
-		List<Integer> entries = new ArrayList<>();
-		List<Integer> exits = new ArrayList<>();
-		
-		for (Node node : nodes) {
-			if (node.isEntry()) {
-				entries.add(node.GetNodeNumber());
-			}
-			if (node.isExit()) {
-				exits.add(node.GetNodeNumber());
-			}
-			
-			// get edges in node lines
-			String unifiedLines = node.GetSrcLine();
-			String[] lines = unifiedLines.split("\n");
-
-			Integer curLineId = node.GetSrcLineIdx();
-			List<Integer> originalLines = Helper.incOneToAll(mapping.get(curLineId));			
-			for(int j=0; j < originalLines.size()-1; j++) {
-				edgeList.add(new ImmutablePair<Integer, Integer>(originalLines.get(j), originalLines.get(j+1)));
-			}
-			int lastLineId = originalLines.get(originalLines.size()-1);
-			
-			for(int i=1; i < lines.length-1 ; i++) {
-				curLineId = node.GetSrcLineIdx() + i;
-				originalLines = Helper.incOneToAll(mapping.get(curLineId));
-				edgeList.add(new ImmutablePair<Integer, Integer>(lastLineId, originalLines.get(0)));
-				for(int j=0; j < originalLines.size()-1; j++) {
-					edgeList.add(new ImmutablePair<Integer, Integer>(originalLines.get(j), originalLines.get(j+1)));
-				}
-				lastLineId = originalLines.get(originalLines.size()-1);
-			}
-			
-			List<Integer> tgtNodes = getTargetsOfNode(node.GetNodeNumber());
-			for (Integer tgt : tgtNodes) {
-				int tgtLineId = nodes.get(tgt).GetSrcLineIdx();
-				List<Integer> tgtLines = Helper.incOneToAll(mapping.get(tgtLineId));
-				edgeList.add(new ImmutablePair<Integer, Integer>(lastLineId, tgtLines.get(0)));
-			}
-		}
-		
+	public String listLineEdges(Map<Integer, List<Integer>> mapping) {
 		String output = "";
-		for (Pair<Integer, Integer> p : edgeList) {
-			output += (p.getLeft() + " -> " + p.getRight()) + "\n";
-		}
+		output += "Entry lines: " + getLineIdsFromNodes(getEntryNodeList()) + "\n";
+		output += "Exit lines: " + getLineIdsFromNodes(getExitNodeList()) + "\n";
 		
-		output += "Entry lines: ";
-		for (Integer entry : entries) {
-			output += entry + " ";
+		List<Edge> lineEdges = getLineEdges();
+		for (Edge e : lineEdges) {
+			output += (e.GetStart()) + " -> " + (e.GetEnd()) + "\n";
 		}
-		output += "\n";
-		
-		output += "Exit lines: ";
-		for (Integer exit : exits) {
-			output += exit + " ";
-		}
-		output += "\n\n";
-		
 		return output;
 	}
+
+	public void buildFromEdges(List<Edge> _edges) {
+		List<Integer> addedNodes = new ArrayList<Integer>();
+		for(Edge e : _edges) {
+			int start = e.GetStart();
+			int end = e.GetEnd();
+			if (!addedNodes.contains(start)) {
+				nodes.add(new Node(start, "", false, false));
+			}
+			if (!addedNodes.contains(end)) {
+				nodes.add(new Node(end, "", false, false));
+			}
+		}
+		edges = _edges;
+	}
 	
-	public void generateLineEdges() {
+	public void adjustLineNumbers(int blockStartingLine, Map<Integer, List<Integer>> mapping) {
 		for (Node n : nodes) {
-			List<Integer> lines = n.GetSrcLinesIndex();
+			n.SetStartingLineId(n.GetStartingLineId() + blockStartingLine);
+			n.applyLineMapping(mapping);
+		}
+	}
+
+	public List<Edge> getLineEdges() {
+		List<Edge> lineEdgeList = new ArrayList<Edge>();
+		
+		for (Node n : nodes) {
+			List<Integer> lines = n.GetSourceCodeLineIds();
 			for (int i = 1; i < lines.size(); i++) {
-				lineEdges.add(new Edge(lines.get(i-1)+1, lines.get(i)+1));
+				lineEdgeList.add(new Edge(lines.get(i-1), lines.get(i)));
 			}
 		}
 		
 		for (Edge e : edges) {
 			Node src = nodes.get(e.GetStart());
 			Node tgt = nodes.get(e.GetEnd());
-			Integer srcLine = src.GetLastLineId();
-			Integer tgtLine = tgt.GetSrcLinesIndex().get(0);
+			Integer srcLine = src.getLastLineId();
+			Integer tgtLine = tgt.GetStartingLineId();
 			if (srcLine != tgtLine) {
-				lineEdges.add(new Edge(srcLine+1, tgtLine+1));
+				lineEdgeList.add(new Edge(srcLine, tgtLine));
 			}
 		}
-	}
-	
-	// TODO maybe not replace current setting
-	public void ProcessAsLines() {
-		if (asLines) return;
-		asLines = true;
 		
-		int entryLine = GetEntryNode().GetSrcLinesIndex().get(0)+1;
-		List<Integer> exitLines = new ArrayList<Integer>();
-
-		for (Node n : nodes) {
-			if (n.isExit()) {
-				exitLines.add(n.GetSrcLinesIndex().get(0)+1);
-			}
+		if (lineEdgeList.size() == 0) {
+			int lineId = getEntryNode().GetStartingLineId();
+			lineEdgeList.add(new Edge(lineId, lineId));
 		}
-
-		nodes.clear();
-		edges = lineEdges;
-		List<Integer> addedNodes = new ArrayList<Integer>();
 		
-		for (Edge e : edges) {
-			Node startNode = new Node(e.GetStart(), "", entryLine == e.GetStart(), exitLines.contains(e.GetStart()));
-			Node endNode = new Node(e.GetEnd(), "", entryLine == e.GetEnd(), exitLines.contains(e.GetEnd()));
-			
-			if (!addedNodes.contains(e.GetStart())) {
-				nodes.add(startNode);
-				addedNodes.add(e.GetStart());
-			}
-			if (!addedNodes.contains(e.GetEnd())) {
-				nodes.add(endNode);
-				addedNodes.add(e.GetEnd());
-			}
-		}
+		return lineEdgeList;
+	}
+	
+	public void writePng() {
+		Helper.writePng(className + "/" + methodSignature + ".png", generateDOT());
+	}
 
-		if (edges.isEmpty() && exitLines.contains(entryLine)) {
-			nodes.add(new Node(entryLine, "", true, true));
-		}
+	private void addNode(String sourceCode, int startingLineId) {
+		Node node = new Node(0, sourceCode, false, false);
+		node.SetStartingLineId(startingLineId);
+		nodes.add(node);
 	}
 	
-	private List<Integer> getTargetsOfNode(int src) {
-		List<Integer> targets = new ArrayList<Integer>();
-		for (Edge edge : edges) {
-			if (edge.GetStart() == src) {
-				targets.add(edge.GetEnd());
-			}
-		}
-		return targets;
+	private void addEdge(int srcNodeId, int tgtNodeId) {
+		edges.add(new Edge(srcNodeId, tgtNodeId));
+	}
+
+	private int getPreviousInstructionLineId(int startingLineId) {
+		int prevLineId = startingLineId-1;
+		while (prevLineId > -1 && methodCode.get(prevLineId).equals("}"))
+			prevLineId--;
+		return prevLineId;
 	}
 	
-	private void getNodes(){
-		if (printDebug){
-			String outlines="\n***** Processed Source Code:\n\n";
-			for (int i=0; i<methodLines.size(); i++) outlines += i+": "+methodLines.get(i)+"\n";
-			System.out.printf("%s\n", outlines);
+	private int getNextInstructionLineId(int startingLineId) {
+		int nextLineId = startingLineId+1;
+		while (nextLineId < methodCode.size() && methodCode.get(nextLineId).equals("}")) 
+			nextLineId++;
+		return nextLineId;
+	}
+	
+	private void getNodes() {
+		if (debug) {
+			dumpCode();
 		}
 		
 		List<Integer> conditionalStartLines = new ArrayList<Integer>();
 		List<List<Integer>> edgeStartLinesList = new ArrayList<List<Integer>>();
 		
-		for (int i=0; i<methodLines.size(); i++){
-			
-			String line = methodLines.get(i);
+		for (int i=0; i<methodCode.size(); i++) {
+			String line = methodCode.get(i);
 			
 			//if we find a close brace, need to figure out where to go from here
-			if (line.matches("}")){
-				
+			if (line.matches("}")) {
 				//find the opening
-				int openline = findStartOfBlock(i-1, true);
+				int openline = Helper.findStartOfBlock(methodCode, i-1, true);
 				
 				//for loops, add an edge back to the start
-				if (methodLines.get(openline).toLowerCase().matches("^\\b(for|while|do)\\b.*")){
-					if (methodLines.get(openline).toLowerCase().matches("^\\b(for|while)\\b.*")){
-						addEdge(getPrevLine(i),openline);	
-						addEdge(openline,getNextLine(i));
+				if (methodCode.get(openline).toLowerCase().matches("^\\b(for|while|do)\\b.*")) {
+					if (methodCode.get(openline).toLowerCase().matches("^\\b(for|while)\\b.*")) {
+						addEdge(getPreviousInstructionLineId(i),openline);	
+						addEdge(openline,getNextInstructionLineId(i));
 					}
-					else if (methodLines.get(i+1).toLowerCase().matches("^\\b(while)\\b.*")){ //do
-						addEdge(getPrevLine(openline), getNextLine(openline)); //entry edge that skips the "do" statement
-						addEdge(getPrevLine(i),i+1); //into loop test
-						addEdge(i+1,getNextLine(openline)); //looping edge
-						addEdge(i+1,getNextLine(i+1)); //loop exit edge
+					else if (methodCode.get(i+1).toLowerCase().matches("^\\b(while)\\b.*")) { //do
+						addEdge(getPreviousInstructionLineId(openline), getNextInstructionLineId(openline)); //entry edge that skips the "do" statement
+						addEdge(getPreviousInstructionLineId(i),i+1); //into loop test
+						addEdge(i+1,getNextInstructionLineId(openline)); //looping edge
+						addEdge(i+1,getNextInstructionLineId(i+1)); //loop exit edge
 					} else {
 						System.err.println("Do without while");
 						System.exit(2);
 					}
 				}
-				
 				//for conditionals, we won't add edges until after the block.  Then link all the close braces to the end of the block
-				else if (methodLines.get(openline).toLowerCase().matches("^\\b(if|else if)\\b.*")){
-					if (methodLines.get(openline).toLowerCase().matches("^\\bif\\b.*")) {
+				else if (methodCode.get(openline).toLowerCase().matches("^\\b(if|else if)\\b.*")) {
+					if (methodCode.get(openline).toLowerCase().matches("^\\bif\\b.*")) {
 						edgeStartLinesList.add(new ArrayList<Integer>());
 						
 						conditionalStartLines.add(openline);
@@ -406,10 +320,10 @@ public class Graph {
 					}
 					
 					//if we're not done with the conditional block, save the start of this edge until we find the end of the block
-					if (methodLines.size() > i+1 && methodLines.get(i+1).toLowerCase().matches("^\\belse\\b.*")){
-						edgeStartLinesList.get(edgeStartLinesList.size()-1).add(getPrevLine(i));
+					if (methodCode.size() > i+1 && methodCode.get(i+1).toLowerCase().matches("^\\belse\\b.*")) {
+						edgeStartLinesList.get(edgeStartLinesList.size()-1).add(getPreviousInstructionLineId(i));
 					}
-					else{
+					else {
 						for (Integer start: edgeStartLinesList.get(edgeStartLinesList.size()-1)){
 							addEdge(start, i+1);
 						}
@@ -417,11 +331,11 @@ public class Graph {
 						edgeStartLinesList.remove(edgeStartLinesList.size()-1);
 						conditionalStartLines.remove(conditionalStartLines.size()-1);
 						
-						addEdge(getPrevLine(i),getNextLine(i));
-						addEdge(openline,getNextLine(i));
+						addEdge(getPreviousInstructionLineId(i),getNextInstructionLineId(i));
+						addEdge(openline,getNextInstructionLineId(i));
 					}
 				}
-				else if (methodLines.get(openline).toLowerCase().substring(0,4).equals("else")){
+				else if (methodCode.get(openline).toLowerCase().substring(0,4).equals("else")) {
 					if (edgeStartLinesList.size() == 0 
 							|| edgeStartLinesList.get(edgeStartLinesList.size()-1).size() == 0){
 						System.err.println("Else without if block");
@@ -440,27 +354,26 @@ public class Graph {
 					edgeStartLinesList.remove(edgeStartLinesList.size()-1);
 					conditionalStartLines.remove(conditionalStartLines.size()-1);
 				}
-				else if (methodLines.get(openline).toLowerCase().matches("^\\bswitch\\b.*")){
+				else if (methodCode.get(openline).toLowerCase().matches("^\\bswitch\\b.*")){
 
 					//add edges to cases
 					for (int k=openline; k<i; k++){ //iterate through the case statement
-						if (methodLines.get(k).matches("^\\b(case|default)\\b.*")){
-							if (methodLines.get(k).matches(":$")) addEdge(openline,k);
-							else addEdge(openline,getNextLine(k));  //didnt't split lines at : so could be the next line
+						if (methodCode.get(k).matches("^\\b(case|default)\\b.*")){
+							if (methodCode.get(k).matches(":$")) addEdge(openline,k);
+							else addEdge(openline,getNextInstructionLineId(k));  //didnt't split lines at : so could be the next line
 						}
-						if (methodLines.get(k).matches("^\\bbreak\\b;")) addEdge(k,getNextLine(i));
+						if (methodCode.get(k).matches("^\\bbreak\\b;")) addEdge(k,getNextInstructionLineId(i));
 					}
 				}
 			}
-			
-			else{
+			else {
 				//TODO REMOVE AND CHECK IF IT CREATES SEPARATE NODES
 				
 				//we'll add a node and an edge unless these are not executable lines
-				if (!methodLines.get(i).toLowerCase().matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*")){
+				if (!methodCode.get(i).toLowerCase().matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*")){
 					addNode(line,i);
-					if (i>0 && !methodLines.get(getPrevLine(i)).toLowerCase().matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*") && !methodLines.get(i-1).equals("}")){
-						addEdge(getPrevLine(i), i);
+					if (i>0 && !methodCode.get(getPreviousInstructionLineId(i)).toLowerCase().matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*") && !methodCode.get(i-1).equals("}")){
+						addEdge(getPreviousInstructionLineId(i), i);
 					}
 					
 				}
@@ -481,7 +394,7 @@ public class Graph {
 		
 		//fix any returns before the last line
 		for (int i=0; i<nodes.size(); i++) {
-			if (Helper.lineContainsReservedWord(nodes.get(i).GetSrcLine(), "return")) {
+			if (Helper.lineContainsReservedWord(nodes.get(i).GetSourceCode(), "return")) {
 				//mark node as an exit node
 				Node n = nodes.get(i);
 				n.SetExit(true);
@@ -489,12 +402,12 @@ public class Graph {
 				
 				//remove any lines coming from that node
 				for (int j=0; j<edges.size(); j++){
-					if (edges.get(j).GetStart() == n.GetSrcLineIdx()) edges.remove(j);
+					if (edges.get(j).GetStart() == n.GetStartingLineId()) edges.remove(j);
 				}
 			}
 		}
 		
-		if (printDebug){
+		if (debug){
 			System.out.print("\n***** Edges:\n   - numbers correspond to processed source code line numbers (above)\n   - basic block nodes not yet combined\n\n");
 			for (Edge e: edges) System.out.println("("+e.GetStart()+","+e.GetEnd()+")");
 		}
@@ -512,7 +425,7 @@ public class Graph {
 			}
 			if (!foundEnd){
 				Node n = new Node();
-				n.SetSrcLine("");
+				n.SetSourceCode("");
 				n.SetNodeNumber(e.GetEnd());
 				nodes.add(n);
 			}
@@ -531,7 +444,7 @@ public class Graph {
 		for (int i=0; i<nodes.size(); i++){
 			
 			// if there's more than one edge (or no edges) leaving this node, we can't combine
-			if (nodes.get(i).GetEdgesFrom() != 1 || nodes.get(i).GetSrcLine().contains("%forcenode%")) continue;
+			if (nodes.get(i).GetEdgesFrom() != 1 || nodes.get(i).GetSourceCode().contains("%forcenode%")) continue;
 			
 			// find the edge leaving this node
 			int midEdge = 0;
@@ -540,7 +453,7 @@ public class Graph {
 			while (nodes.get(nextNode).GetNodeNumber() != edges.get(midEdge).GetEnd()) nextNode++;
 			
 			// if there's more than one edge entering the next node, we can't combine
-			if (nodes.get(nextNode).GetEdgesTo() > 1 || nodes.get(nextNode).GetSrcLine().contains("%forcenode%")) continue;
+			if (nodes.get(nextNode).GetEdgesTo() > 1 || nodes.get(nextNode).GetSourceCode().contains("%forcenode%")) continue;
 			
 			// if it's a self-loop we can't combine
                         if (nextNode == i) continue;	
@@ -548,8 +461,8 @@ public class Graph {
 			// If we got here we can combine the nodes
 						
 			//copy the sourceline (we'll delete nextNode)
-			nodes.get(i).SetSrcLine(nodes.get(i).GetSrcLine()+"\n"+nodes.get(nextNode).GetSrcLine());
-			nodes.get(i).GetSrcLinesIndex().addAll(nodes.get(nextNode).GetSrcLinesIndex());
+			nodes.get(i).SetSourceCode(nodes.get(i).GetSourceCode()+"\n"+nodes.get(nextNode).GetSourceCode());
+			nodes.get(i).GetSourceCodeLineIds().addAll(nodes.get(nextNode).GetSourceCodeLineIds());
 			
 			// get all the edges leaving the next node
 			List<Integer> outEdges = new ArrayList<Integer>();
@@ -599,8 +512,8 @@ public class Graph {
 			int newStart=0;
 			int newEnd=0;
 			
-			while (newStart < nodes.size() && nodes.get(newStart).GetSrcLineIdx() != oldedges.get(i).GetStart()) newStart++;
-			while (newEnd < nodes.size() && nodes.get(newEnd).GetSrcLineIdx() != oldedges.get(i).GetEnd()) newEnd++;
+			while (newStart < nodes.size() && nodes.get(newStart).GetStartingLineId() != oldedges.get(i).GetStart()) newStart++;
+			while (newEnd < nodes.size() && nodes.get(newEnd).GetStartingLineId() != oldedges.get(i).GetEnd()) newEnd++;
 			
 			addEdge(newStart,newEnd);
 		}
@@ -630,21 +543,7 @@ public class Graph {
 			
 			if (!nodes.get(i).isExit()) nodes.get(i).SetExit(exit); //make sure override stays for return nodes
 		}
-		
 	}
-	
-	/*
-	private void fixNodesAndEdgesNumbers(int nextNodeNumber, int startingLine) {
-		for(int i=0; i<nodes.size(); i++) {
-			nodes.get(i).SetNodeNumber(nextNodeNumber+i);
-			nodes.get(i).SetSrcLineIdx(nodes.get(i).GetSrcLineIdx()+startingLine);
-		}
-		
-		for(int i=0; i<edges.size(); i++) {
-			edges.get(i).SetValues(edges.get(i).GetStart() + nextNodeNumber, edges.get(i).GetEnd() + nextNodeNumber);
-		}
-	}
-	*/
 	
 	private String generateDOT() {
 		String strDOT = "digraph cfg{\n";
@@ -661,7 +560,7 @@ public class Graph {
 				line += "\t"+n.GetNodeNumber()+" [penwidth=4];\n"; // make the exit node bold
 			}
 			
-			if (n.GetSrcLine().contains("%forcelabel%")){
+			if (n.GetSourceCode().contains("%forcelabel%")){
 			//	line += "\t"+n.node_number+" [xlabel=\"" + removeTags(n.srcline).trim() + "\",labelloc=\"c\"]"; // label the node if forced
 			}
 			
@@ -678,51 +577,10 @@ public class Graph {
 		return strDOT;
 	}
 	
-	private void addNode(String line, int lineidx) {
-		Node node = new Node(0,line,false,false);
-		node.SetSrcLineIdx(lineidx);
-		nodes.add(node);
-	}
-	
-	private void addEdge(int startidx, int endidx) {
-		edges.add(new Edge(startidx,endidx));
-	}
-
-	private int getPrevLine(int start) {
-		int prevEdge=start-1;
-		while (prevEdge > -1 && methodLines.get(prevEdge).equals("}")) prevEdge--;
-		return prevEdge;
-	}
-	
-	private int getNextLine(int start) {
-		int nextEdge=start+1;
-		while (nextEdge < methodLines.size() && methodLines.get(nextEdge).equals("}")) nextEdge++;
-		return nextEdge;
-	}
-	
-	private int findStartOfBlock(int startingLine, boolean useBlockLines) {
-		int curLineId = startingLine;
-		int openingLine = -1;
-		int depth = 0;
-		
-		while (curLineId >= 0 && openingLine == -1) {
-			String curLine = methodLines.get(curLineId);
-			if (Helper.lineContainsReservedChar(curLine, "}")) {
-				depth++;
-			} else if (Helper.lineContainsReservedChar(curLine, "{") && depth > 0) {
-				depth--;
-			} else if (Helper.lineContainsReservedChar(curLine, "{")) {
-				openingLine = curLineId;
-			}
-			curLineId--;
-		}
-
-		if (openingLine == -1){
-			System.err.println("Braces are not balanced");
-			System.err.println("When trying to find start of block ending at line " + (startingLine+1));			
-			System.exit(2);
-		}
-		
-		return openingLine;
+	private void dumpCode() {
+		String outlines = "\n***** Processed Source Code:\n\n";
+		for (int i=0; i<methodCode.size(); i++) 
+			outlines += i + ": " + methodCode.get(i) + "\n";
+		System.out.printf("%s\n", outlines);
 	}
 }

@@ -13,10 +13,12 @@ public class CodeCleaner {
 	private List<Map<Integer, List<Integer>>> lineMappings;
 	// (line mode only) List containing lines that originally were empty or only contained comments
 	private List<Integer> emptyLines;
+	// Debug flag
+	private boolean debug;
 	
 	// TODO make line mode optional in order to avoid unnecessary tasks
 	
-	public CodeCleaner() {
+	public CodeCleaner(boolean debug) {
 		lineMappings = new ArrayList<Map<Integer, List<Integer>>>();
 		emptyLines = new ArrayList<Integer>();
 	}
@@ -32,6 +34,11 @@ public class CodeCleaner {
 		addDummyNodes();
 		buildFullMap();
 		buildReverseFullMap();
+		
+		if (debug) {
+			dumpCode();
+			dumpLastMap();
+		}
 	}
 	
 	public Map<Integer, List<Integer>> getCleanToOriginalCodeMapping() {
@@ -551,26 +558,19 @@ public class CodeCleaner {
 	}
 	
 	public void dumpCode() {
+		System.out.println(" ***** Clean source code: ");
 		for(int n=0; n<processedCode.size(); n++) {
 			System.out.println(processedCode.get(n));
 		}
+		System.out.println(" ***** End of source code");
 	}
 	
-	/*
-	public void dumpblockids(List<Pair<Integer, Integer>> blockList) {
-		for(Pair<Integer, Integer> blocklimits : blockList) {
-			int start = blocklimits.getLeft();
-			int end = blocklimits.getRight();
-			List<Integer> startO = lineMappings.get(lineMappings.size()-1).get(start);
-			List<Integer> endO = lineMappings.get(lineMappings.size()-1).get(end);
-			for(int i=0; i<startO.size(); i++) {
-				startO.set(i, startO.get(i)+1);
-			}
-			for(int i=0; i<endO.size(); i++) {
-				endO.set(i, endO.get(i)+1);
-			}
-			System.out.println(startO + " " + endO);
+	public void dumpLastMap() {
+		System.out.println(" ***** Original to clean code map: ");
+		Map<Integer, List<Integer>> map = getCleanToOriginalCodeMapping();
+		for(int key : map.keySet()) {				
+			System.out.println(" | " + key + " -> " + map.get(key));
 		}
+		System.out.println(" ***** End of map ");
 	}
-	*/
 }

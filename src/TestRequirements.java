@@ -4,6 +4,7 @@ import java.util.*;
 public class TestRequirements {
 	private Graph graph = null; 
 	private boolean lineMode = true;
+	private boolean debug = false;
 	private boolean breakLines = false;
 	
 	public TestRequirements() {
@@ -22,6 +23,10 @@ public class TestRequirements {
 		breakLines = true;
 	}
 	
+	public void allowDebug() {
+		debug = true;
+	}
+	
 	public void setLineMode(boolean value) {
 		lineMode = value;
 	}
@@ -35,7 +40,7 @@ public class TestRequirements {
 		}
 		
 		List<Node> traveledNodes = new LinkedList<Node>();
-		List<Node> entryNodeList = graph.GetEntryNodeList();
+		List<Node> entryNodeList = graph.getEntryNodeList();
 		TravelNodeList(traveledNodes, entryNodeList);
 		output += PrintTraveledNodes(traveledNodes);
 		output += "\n";
@@ -58,7 +63,7 @@ public class TestRequirements {
 		_traveledNodes.add(_node);
 		//System.out.print(_node.GetNodeNumber() + " ");
 		
-		List<Edge> edgesList = graph.GetEdgeStartFrom(_node); // FIXME
+		List<Edge> edgesList = graph.getEdgesStartingFrom(_node);
 		Node node = null;
 		Edge edge = null;
 		int end = -1;
@@ -67,7 +72,7 @@ public class TestRequirements {
 			//System.out.println("[PrintNode] Edge = " + edge);
 			end = edge.GetEnd();
 			//System.out.println("[PrintNode] Edge end = " + end);
-			node = graph.GetNode(end);	// FIXME
+			node = graph.getNode(end);	// FIXME
 			TravelNode(_traveledNodes, node);
 		}
 	}
@@ -112,7 +117,7 @@ public class TestRequirements {
 		}
 				
 		List<Edge> traveledEdges = new LinkedList<Edge>();
-		Node node = graph.GetEntryNode();
+		Node node = graph.getEntryNode();
 		TravelEdges(traveledEdges, node);			
 		output += PrintTraveledEdges(traveledEdges);		// Display sorted edge list
 		output += "\n";
@@ -124,7 +129,7 @@ public class TestRequirements {
 			System.out.println("Node is null");
 			return;
 		}
-		List<Edge> edgesList = graph.GetEdgeStartFrom(_node);
+		List<Edge> edgesList = graph.getEdgesStartingFrom(_node);
 		Edge edge1 = null, edge2 = null;
 		boolean skip = false;
 		for(int i = 0; i < edgesList.size(); i++) {
@@ -140,7 +145,7 @@ public class TestRequirements {
 			}
 			if(skip == false) {
 				int end = edge1.GetEnd();
-				Node node = graph.GetNode(end);
+				Node node = graph.getNode(end);
 				_traveledEdges.add(edge1);
 				//System.out.print("[" + edge1.GetStart() + "," + edge1.GetEnd() + "] ");
 				
@@ -170,27 +175,27 @@ public class TestRequirements {
 			edge = iterator.next();
 			int start = edge.GetStart();
 			int end = edge.GetEnd();
-			List<Integer> startEdgeLines = graph.GetNode(start).GetSrcLinesIndex();
-			List<Integer> endEdgeLines = graph.GetNode(end).GetSrcLinesIndex();
+			List<Integer> startEdgeLines = graph.getNode(start).GetSourceCodeLineIds();
+			List<Integer> endEdgeLines = graph.getNode(end).GetSourceCodeLineIds();
 			
 			if (startEdgeLines.size() == 1) {
-				start = startEdgeLines.get(0)+1;
+				start = startEdgeLines.get(0);
 			} else {
 				for(int i=1; i<startEdgeLines.size()-1; i++) {
-					output += ("[" + (startEdgeLines.get(i-1)+1) + "," + (startEdgeLines.get(i)+1) + "]");
+					output += ("[" + (startEdgeLines.get(i-1)) + "," + (startEdgeLines.get(i)) + "]");
 					output += breakLines ? "\n" : " ";
 				}
-				start = startEdgeLines.get(startEdgeLines.size()-1) + 1;
+				start = startEdgeLines.get(startEdgeLines.size()-1);
 			}
 
-			if (start != endEdgeLines.get(0)+1) {
-				output += ("[" + start + "," + (endEdgeLines.get(0)+1) + "]");
+			if (start != endEdgeLines.get(0)) {
+				output += ("[" + start + "," + (endEdgeLines.get(0)) + "]");
 				output += breakLines ? "\n" : " ";
 			}
 			
 			if (endEdgeLines.size() > 1) {
 				for(int i=0; i<startEdgeLines.size()-1; i++) {
-					output += ("[" + (startEdgeLines.get(i)+1) + "," + (startEdgeLines.get(i+1)+1) + "]");
+					output += ("[" + (startEdgeLines.get(i)) + "," + (startEdgeLines.get(i+1)) + "]");
 					output += breakLines ? "\n" : " ";
 				}
 			}
@@ -207,7 +212,7 @@ public class TestRequirements {
 		}
 		
 		List<EdgePair> traveledEPs = new LinkedList<EdgePair>();
-		Node node = graph.GetEntryNode();
+		Node node = graph.getEntryNode();
 		TravelEdgePairs(traveledEPs, node);
 		output += PrintTraveledEPs(traveledEPs);
 		output += "\n";
@@ -219,7 +224,7 @@ public class TestRequirements {
 			System.out.println("Node is null");
 			return;
 		}
-		List<Edge> edgesList1 = graph.GetEdgeStartFrom(_node);
+		List<Edge> edgesList1 = graph.getEdgesStartingFrom(_node);
 		Edge edge1 = null, edge2 = null;
 		Node node1 = null;
 		boolean skip = false;
@@ -228,8 +233,8 @@ public class TestRequirements {
 			skip = false;
 			edge1 = edgesList1.get(i);
 			//System.out.println("Edge1 = " + edge1);
-			node1 = graph.GetNode(edge1.GetEnd());
-			List<Edge> edgesList2 = graph.GetEdgeStartFrom(node1);
+			node1 = graph.getNode(edge1.GetEnd());
+			List<Edge> edgesList2 = graph.getEdgesStartingFrom(node1);
 			for(int j = 0; j < edgesList2.size(); j++) {
 				edge2 = edgesList2.get(j);
 				//System.out.println("Edge2 = " + edge2);
@@ -287,11 +292,11 @@ public class TestRequirements {
 		}
 		
 		if(lineMode) {
-			graph.ProcessAsLines();
+			graph = getLineVersion(graph);
 		}
 		
 		List<Node> traveledNodes = new LinkedList<Node>();
-		Node node = graph.GetEntryNode();
+		Node node = graph.getEntryNode();
 		TravelNode(traveledNodes, node);
 		SimplePathList spl = new SimplePathList(traveledNodes);
 		SimplePathPool pool = new SimplePathPool();
@@ -341,7 +346,7 @@ public class TestRequirements {
 			}
 			
 			Node lastNode = sp.GetLastNode();
-			List<Edge> edgesList = graph.GetEdgeStartFrom(lastNode);
+			List<Edge> edgesList = graph.getEdgesStartingFrom(lastNode);
 			Node node = null;
 			Edge edge = null;
 			int end = -1;
@@ -350,7 +355,7 @@ public class TestRequirements {
 				//System.out.println("Edges: " + edge);
 				end = edge.GetEnd();
 				//System.out.println("end: " + end);
-				node = graph.GetNode(end);
+				node = graph.getNode(end);
 				//System.out.println("Node: " + node);
 				//System.out.println("SP: " + sp);
 				//System.out.println("isSP(node): " + sp.isSP(node));
@@ -364,5 +369,15 @@ public class TestRequirements {
 		}
 		//System.out.println("SimplePath List : " + spl2);
 		GenerateSimplePath(_pool, spl2);
+	}
+	
+	private Graph getLineVersion(Graph gr) {
+		Graph lineGr = new Graph(gr.getMethodName(), gr.getMethodSignature(), gr.getClassName(), debug);
+		lineGr.buildFromEdges(gr.getLineEdges());
+		int entryLine = gr.getEntryNode().GetStartingLineId();
+		List<Integer> exitLines = gr.getLineIdsFromNodes(gr.getExitNodeList());
+		lineGr.setEntryNode(entryLine);
+		lineGr.setExitNodes(exitLines);
+		return lineGr;
 	}
 }

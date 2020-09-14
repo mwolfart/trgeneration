@@ -1,6 +1,3 @@
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -18,8 +15,6 @@ public class CodeProcessor {
 	private CodeCleaner cleaner;
 	// Graphs for each class and method of the code
 	private List<Graph> graphs;
-	// Line mode: if true will display TRs and coverages based on line numbers
-	private boolean lineMode;
 	// Debug flag
 	private boolean debug;
 	
@@ -28,11 +23,9 @@ public class CodeProcessor {
 		int lastSlashId = filePath.lastIndexOf("\\");
 		fileDir = (lastSlashId != -1 ? filePath.substring(0, lastSlashId+1) : "");
 
-		lineMode = true;
 		debug = false;
-		
 		processedCode = new ArrayList<String>();
-		cleaner = new CodeCleaner();
+		cleaner = new CodeCleaner(debug);
 		graphs = new ArrayList<Graph>();
 	}
 		
@@ -57,13 +50,13 @@ public class CodeProcessor {
 	
 	public void writeGraphStructures() {
 		for(Graph graph : graphs) {
-			String className = graph.GetClassName();
-			String methodSignature = graph.GetMethodSignature();
+			String className = graph.getClassName();
+			String methodSignature = graph.getMethodSignature();
 			Map<Integer, List<Integer>> lineMap = cleaner.getCleanToOriginalCodeMapping();
 			
 			String output = "Test Requirements for class " + className
 					+ " method " + methodSignature + ":\n\n";
-			output += graph.PrintGraphStructure(lineMap);
+			output += graph.listGraphStructure(lineMap);
 			
 			String filePath = fileDir + className + "/" + methodSignature + "/graphStructure.txt";
 			Helper.writeFile(filePath, output);
@@ -72,12 +65,13 @@ public class CodeProcessor {
 	
 	public void writePPCandECrequirements() {
 		TestRequirements tr = new TestRequirements();
+		if (debug) tr.allowDebug();
 		
 		for(Graph graph : graphs) {
 			tr.ReadGraph(graph);
 			
-			String className = graph.GetClassName();
-			String methodSignature = graph.GetMethodSignature();
+			String className = graph.getClassName();
+			String methodSignature = graph.getMethodSignature();
 
 			tr.allowLineBreaksBetweenSets();
 			
@@ -95,12 +89,13 @@ public class CodeProcessor {
 	
 	public void writeTestRequirements() {
 		TestRequirements tr = new TestRequirements();
+		if (debug) tr.allowDebug();
 		
 		for (Graph graph : graphs) {
 			tr.ReadGraph(graph);
 			
-			String className = graph.GetClassName();
-			String methodSignature = graph.GetMethodSignature();
+			String className = graph.getClassName();
+			String methodSignature = graph.getMethodSignature();
 
 			String output = "Test Requirements for class " + className
 					+ " method " + methodSignature + ":\n\n";
@@ -109,9 +104,6 @@ public class CodeProcessor {
 			output += "TR for Edge-Pair coverage: " + tr.PrintEdgePairCoverage();
 			output += "TR for Prime Path coverage: " + tr.PrintPrimePathCoverage();
 			output += "\n";
-
-			methodSignature = methodSignature.replace("<", "{");
-			methodSignature = methodSignature.replace(">", "}");
 			
 			String filePath = fileDir + className + "/" + methodSignature + "/testRequirements.txt";
 			Helper.writeFile(filePath, output);
@@ -120,16 +112,13 @@ public class CodeProcessor {
 	
 	public void writeLineEdges() {
 		for (Graph graph : graphs) {
-			String className = graph.GetClassName();
-			String methodSignature = graph.GetMethodSignature();
+			String className = graph.getClassName();
+			String methodSignature = graph.getMethodSignature();
 			Map<Integer, List<Integer>> lineMap = cleaner.getCleanToOriginalCodeMapping();
 			
 			String output = "Printing line edges for class " 
 					+ className + " method " + methodSignature + "...\n";
-			output += graph.PrintLineEdges(lineMap);
-
-			methodSignature = methodSignature.replace("<", "{");
-			methodSignature = methodSignature.replace(">", "}");
+			output += graph.listLineEdges(lineMap);
 			
 			String filePath = fileDir + className + "/" + methodSignature + "/lineEdges.txt";
 			Helper.writeFile(filePath, output);
@@ -170,10 +159,9 @@ public class CodeProcessor {
 			Graph methodGraph = new Graph(methodName, methodSignature, className, methodBody, debug);
 			Map<Integer, List<Integer>> lineMap = cleaner.getCleanToOriginalCodeMapping();
 			
-			methodGraph.computeNodes();
-			methodGraph.fixLineNumbers(methodStartLine+1, lineMap);
-			methodGraph.generateLineEdges();
+			methodGraph.buildNodes();
 			methodGraph.writePng();
+			methodGraph.adjustLineNumbers(methodStartLine+1, lineMap);
 			graphs.add(methodGraph);	
 		}
 	}

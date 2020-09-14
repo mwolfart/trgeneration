@@ -5,37 +5,37 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 public class Node {
-	private int node_number;	// Node number
-	private String srcline;  	// the source code making up the node
+	private int nodeNumber;	// Node number
+	private String sourceCode;  	// the source code making up the node
 	private boolean isEntry; 	// true if this is the entry node
 	private boolean isExit;  	// true if this is an exit node
 	
-	private int srcLineIdx;
+	private int startingLineId;
 	private int edgesFrom;
 	private int edgesTo;
 	
-	private List<Integer> srcLinesIndex = new ArrayList<Integer>();
+	private List<Integer> sourceCodeLineIds = new ArrayList<Integer>();
 	
 	public Node(){}
 	
-	public Node(int _node_number, String _srcline, boolean _isEntry, boolean _isExit, List<Integer> _srcLinesIndex) {
-		node_number = _node_number;
-		srcline = _srcline;
+	public Node(int _nodeNumber, String _sourceCode, boolean _isEntry, boolean _isExit, List<Integer> _sourceCodeLineIds) {
+		nodeNumber = _nodeNumber;
+		sourceCode = _sourceCode;
 		isEntry = _isEntry;
 		isExit = _isExit;
-		srcLinesIndex = _srcLinesIndex;
+		sourceCodeLineIds = _sourceCodeLineIds;
 	}
 	
-	public Node(int _node_number, String _srcline, boolean _isEntry, boolean _isExit) {
-		node_number = _node_number;
-		srcline = _srcline;
+	public Node(int _nodeNumber, String _sourceCode, boolean _isEntry, boolean _isExit) {
+		nodeNumber = _nodeNumber;
+		sourceCode = _sourceCode;
 		isEntry = _isEntry;
 		isExit = _isExit;
-		srcLinesIndex = new ArrayList<Integer>();
+		sourceCodeLineIds = new ArrayList<Integer>();
 	}
 	
-	public void SetSrcLineIdx(int idx){	srcLineIdx=idx;	}
-	public int GetSrcLineIdx(){	return srcLineIdx; }
+	public void SetStartingLineId(int idx){	startingLineId=idx;	}
+	public int GetStartingLineId(){	return startingLineId; }
 		
 	public int GetEdgesFrom(){ return edgesFrom; }
 	public void ClearEdgesFrom(){	edgesFrom=0; }
@@ -44,14 +44,14 @@ public class Node {
 	public int GetEdgesTo(){ return edgesTo;	}
 	public void IncEdgesTo(){ edgesTo++; }
 	
-	public int GetNodeNumber() { return node_number; }
-	public void SetNodeNumber(int i){ node_number = i; }
+	public int GetNodeNumber() { return nodeNumber; }
+	public void SetNodeNumber(int i){ nodeNumber = i; }
 	
-	public String GetSrcLine() { return srcline; }
-	public void SetSrcLine(String line) { srcline = line; }
+	public String GetSourceCode() { return sourceCode; }
+	public void SetSourceCode(String line) { sourceCode = line; }
 	
-	public List<Integer> GetSrcLinesIndex() { return srcLinesIndex; }
-	public void SetSrcLinesIndex(List<Integer> linesIndex) { srcLinesIndex = linesIndex; }
+	public List<Integer> GetSourceCodeLineIds() { return sourceCodeLineIds; }
+	public void SetSourceCodeLineIds(List<Integer> linesIndex) { sourceCodeLineIds = linesIndex; }
 	
 	public boolean isEntry() { return isEntry;	}
 	public void SetEntry(boolean e){	isEntry = e; }
@@ -60,27 +60,28 @@ public class Node {
 	public void SetExit(boolean e){ isExit = e; }
 	
 	public String toString() {
-		return "Node" + node_number;
+		return "Node" + nodeNumber;
 	}
 	
 	public boolean isSameNode(Node _node) {
-		return node_number == _node.GetNodeNumber();
+		return nodeNumber == _node.GetNodeNumber();
 	}
 	
 	public int getNumLines() {
-		return StringUtils.countMatches(srcline, '\n') + 1;
+		return StringUtils.countMatches(sourceCode, '\n') + 1;
 	}
 	
-	public int GetLastLineId() {
-		return (srcLinesIndex.size() > 0 ? srcLinesIndex.get(srcLinesIndex.size() - 1) : srcLineIdx);
+	public int getLastLineId() {
+		return (sourceCodeLineIds.size() > 0 ? sourceCodeLineIds.get(sourceCodeLineIds.size() - 1) : startingLineId);
 	}
 	
-	public void fixLinesIndex(Map<Integer, List<Integer>> mapping) {
-		for(int i = srcLineIdx; i < srcLineIdx+getNumLines(); i++) {
+	public void applyLineMapping(Map<Integer, List<Integer>> mapping) {
+		for(int i = startingLineId; i < startingLineId+getNumLines(); i++) {
 			List<Integer> tgtLines = mapping.get(i);
 			for(int tgt : tgtLines) {
-				srcLinesIndex.add(tgt);
+				sourceCodeLineIds.add(tgt + 1);
 			}
 		}
+		startingLineId = mapping.get(startingLineId).get(0) + 1;
 	}
 }
