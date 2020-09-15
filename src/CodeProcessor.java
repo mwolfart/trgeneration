@@ -69,6 +69,7 @@ public class CodeProcessor {
 		
 		for(Graph graph : graphs) {
 			tr.ReadGraph(graph);
+			tr.useLineMode();
 			
 			String className = graph.getClassName();
 			String methodSignature = graph.getMethodSignature();
@@ -93,6 +94,7 @@ public class CodeProcessor {
 		
 		for (Graph graph : graphs) {
 			tr.ReadGraph(graph);
+			tr.useLineMode();
 			
 			String className = graph.getClassName();
 			String methodSignature = graph.getMethodSignature();

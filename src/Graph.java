@@ -185,7 +185,7 @@ public class Graph {
 	
 	public String listLineEdges(Map<Integer, List<Integer>> mapping) {
 		String output = "";
-		output += "Entry lines: " + getLineIdsFromNodes(getEntryNodeList()) + "\n";
+		output += "Entry line: " + getLineIdsFromNodes(getEntryNodeList()).get(0) + "\n";
 		output += "Exit lines: " + getLineIdsFromNodes(getExitNodeList()) + "\n";
 		
 		List<Edge> lineEdges = getLineEdges();
@@ -250,12 +250,14 @@ public class Graph {
 	}
 
 	private void addNode(String sourceCode, int startingLineId) {
+		if (debug) System.out.println("Adding node for code " + sourceCode + " starting at line " + startingLineId);
 		Node node = new Node(0, sourceCode, false, false);
 		node.SetStartingLineId(startingLineId);
 		nodes.add(node);
 	}
 	
 	private void addEdge(int srcNodeId, int tgtNodeId) {
+		if (debug) System.out.println("Adding edge from " + srcNodeId + " to " + tgtNodeId);
 		edges.add(new Edge(srcNodeId, tgtNodeId));
 	}
 
@@ -324,14 +326,19 @@ public class Graph {
 						edgeStartLinesList.get(edgeStartLinesList.size()-1).add(getPreviousInstructionLineId(i));
 					}
 					else {
-						for (Integer start: edgeStartLinesList.get(edgeStartLinesList.size()-1)){
-							addEdge(start, i+1);
+						for (Integer start: edgeStartLinesList.get(edgeStartLinesList.size()-1)) {
+							if (!methodCode.get(start).matches("^\\bcontinue\\b.*")) {
+								addEdge(start, i+1);
+							}
 						}
 						edgeStartLinesList.get(edgeStartLinesList.size()-1).clear();
 						edgeStartLinesList.remove(edgeStartLinesList.size()-1);
 						conditionalStartLines.remove(conditionalStartLines.size()-1);
 						
-						addEdge(getPreviousInstructionLineId(i),getNextInstructionLineId(i));
+						int prevInstrId = getPreviousInstructionLineId(i);
+						if (!methodCode.get(prevInstrId).matches("^\\bcontinue\\b.*")) {
+							addEdge(prevInstrId,getNextInstructionLineId(i));
+						}
 						addEdge(openline,getNextInstructionLineId(i));
 					}
 				}
@@ -370,12 +377,19 @@ public class Graph {
 				//TODO REMOVE AND CHECK IF IT CREATES SEPARATE NODES
 				
 				//we'll add a node and an edge unless these are not executable lines
-				if (!methodCode.get(i).toLowerCase().matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*")){
+				if (!methodCode.get(i).matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*")){
 					addNode(line,i);
-					if (i>0 && !methodCode.get(getPreviousInstructionLineId(i)).toLowerCase().matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*") && !methodCode.get(i-1).equals("}")){
-						addEdge(getPreviousInstructionLineId(i), i);
+					if (methodCode.get(i).matches("^\\bcontinue\\b.*")) {
+						int loopStart = Helper.findConditionalLine(methodCode, i);
+						addEdge(i, loopStart);
 					}
-					
+					if (i > 0) {
+						String previousInstruction = methodCode.get(getPreviousInstructionLineId(i));
+						if (!previousInstruction.matches("^\\b(do|else(?!\\s+if)|case|default|continue)\\b.*") 
+								&& !methodCode.get(i-1).equals("}")){
+							addEdge(getPreviousInstructionLineId(i), i);
+						}
+					}
 				}
 			}
 						

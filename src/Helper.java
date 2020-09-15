@@ -136,4 +136,30 @@ public class Helper {
 		
 		return closingLine;
 	}
+	
+	public static int findConditionalLine(List<String> sourceCode, int startingLine) {
+		int curLineId = startingLine;
+		int conditionalLine = -1;
+		int depth = 0;
+		
+		while (curLineId >= 0 && conditionalLine == -1) {
+			String curLine = sourceCode.get(curLineId);
+			if (Helper.lineContainsReservedChar(curLine, "}")) {
+				depth++;
+			} else if (Helper.lineContainsReservedChar(curLine, "{") && depth > 0) {
+				depth--;
+			} else if (Helper.lineContainsReservedChar(curLine, "{") && curLine.matches("^\\b(do|while)\\b.*")) {
+				conditionalLine = curLineId;
+			}
+			curLineId--;
+		}
+
+		if (conditionalLine == -1) {
+			System.err.println("Continue without while or do");
+			System.err.println("When trying to find conditional of continue at line " + (startingLine+1));			
+			System.exit(2);
+		}
+		
+		return conditionalLine;
+	}
 }

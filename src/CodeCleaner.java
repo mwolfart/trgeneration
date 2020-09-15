@@ -74,6 +74,8 @@ public class CodeCleaner {
 		trimLines();
 		convertForToWhile();
 		trimLines();
+		separateLinesWithSemicolons(); // separating again in case of continues
+		trimLines();
 		separateCaseStatements();
 		trimLines();
 		
@@ -394,11 +396,26 @@ public class CodeCleaner {
 				int idx = processedCode.get(i).indexOf("(");
 				processedCode.add(i, "%forcenode%" + processedCode.get(i).substring(idx+1));
 				i++; //adjust for insertion
+
+				// Work with iterator step
+				idx = processedCode.get(i+2).lastIndexOf(")");
+				String iteratorStep = processedCode.get(i+2).substring(0, idx);
+				mapping.put(i+1+depth, new ArrayList<Integer>());
+				
+				// Clone the iterator to just before any continues present in the loop				
+				List<Integer> continueLinesId = getContinuesInLoopBlock(i, closingLine+1);
+				for(int lineId : continueLinesId) {
+					List<Integer> targetLinesIds = mapping.get(i+1+depth);
+					targetLinesIds.add(lineId);
+					mapping.put(i+1+depth, targetLinesIds);
+					processedCode.set(lineId, "%forcenode%" + iteratorStep + "; continue;");
+				}
 				
 				// Move the iterator to just before the close
-				mapping.put(i+1+depth, Helper.initArray(closingLine-1));
-				idx = processedCode.get(i+2).lastIndexOf(")");
-				processedCode.add(closingLine+1, "%forcenode%" + processedCode.get(i+2).substring(0, idx) + ";");
+				List<Integer> targetLinesIds = mapping.get(i+1+depth);
+				targetLinesIds.add(closingLine-1);
+				mapping.put(i+1+depth, targetLinesIds);
+				processedCode.add(closingLine+1, "%forcenode%" + iteratorStep + ";");
 				processedCode.remove(i+2); //remove old line
 				
 				// Replace for initialization with while
@@ -419,6 +436,19 @@ public class CodeCleaner {
 		}
 		
 		lineMappings.add(mapping);
+	}
+	
+	private List<Integer> getContinuesInLoopBlock(int loopStartingLine, int loopClosingLine) {
+		List<Integer> foundLineIds = new ArrayList<Integer>();
+		for (int i=loopStartingLine+1; i<loopClosingLine; i++) {
+			String curLine = processedCode.get(i);
+			if (curLine.matches("^\\b(for|while|do)\\b.*")) {
+				i = Helper.findEndOfBlock(processedCode, i);
+			} else if (curLine.matches("^\\bcontinue\\b.*")) {
+				foundLineIds.add(i);
+			}
+		}
+		return foundLineIds;
 	}
 	
 	private void convertForEachToFor() {

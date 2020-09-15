@@ -1,0 +1,62 @@
+//turn for loops into while loops
+	private void convertForToWhile() {
+		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
+		List<Integer> loopsClosingLines = new ArrayList<Integer>();
+		int numAddedLines = 0;
+		
+		for (int i=0; i<processedCode.size(); i++) {			
+			if (processedCode.get(i).matches("^for.+$")) {
+				int depth = loopsClosingLines.size();
+				int closingLine = Helper.findEndOfBlock(processedCode, i+3);
+				
+				// Move the initialization before the loop
+				mapping.put(i+depth, Helper.initArray(i));
+				int idx = processedCode.get(i).indexOf("(");
+				processedCode.add(i, "%forcenode%" + processedCode.get(i).substring(idx+1));
+				i++; //adjust for insertion
+
+				// Work with iterator step
+				String iteratorStep = processedCode.get(i+2).substring(0, idx);
+				idx = processedCode.get(i+2).lastIndexOf(")");
+				int iteratorStepOldLineId = i+1+depth;
+				
+				// Clone the iterator to just before any continues present in the loop
+				List<Integer> continueLinesId = getContinuesInLoopBlock(i);
+				for(int lineId : continueLinesId) {
+					int continueLineId = lineId+numAddedLines;
+					
+					List<Integer> targetLinesIds = mapping.get(iteratorStepOldLineId);
+					targetLinesIds.add(lineId);
+					mapping.put(iteratorStepOldLineId, targetLinesIds);
+					
+					processedCode.add(continueLineId, "%forcenode%" + iteratorStep + ";");
+					numAddedLines++;
+				}
+				
+				// Move the iterator to just before the close
+				List<Integer> targetLinesIds = mapping.get(iteratorStepOldLineId);
+				targetLinesIds.add(closingLine-1);
+				mapping.put(iteratorStepOldLineId, targetLinesIds);
+				idx = processedCode.get(i+2).lastIndexOf(")");
+				processedCode.add(closingLine+1, "%forcenode%" + processedCode.get(i+2).substring(0, idx) + ";");
+				processedCode.remove(i+2); //remove old line
+				
+				// Replace for initialization with while
+				mapping.put(i+depth, Helper.initArray(i));
+				String testStatement = processedCode.get(i+1).substring(0, processedCode.get(i+1).length()-1).trim();
+				processedCode.set(i, "while (" + testStatement + ") {");
+				processedCode.remove(i+1); // Remove old (test) line
+
+				loopsClosingLines.add(closingLine);
+			} else {
+				int depth = loopsClosingLines.size();
+				if (depth > 0 && i == loopsClosingLines.get(depth-1) - 1) {
+					loopsClosingLines.remove(loopsClosingLines.size()-1);
+				} else {
+					mapping.put(i+depth, Helper.initArray(i));
+				}
+			}
+		}
+		
+		lineMappings.add(mapping);
+	}

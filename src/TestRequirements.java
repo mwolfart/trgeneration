@@ -3,7 +3,6 @@ import java.util.*;
 
 public class TestRequirements {
 	private Graph graph = null; 
-	private boolean lineMode = true;
 	private boolean debug = false;
 	private boolean breakLines = false;
 	
@@ -27,8 +26,8 @@ public class TestRequirements {
 		debug = true;
 	}
 	
-	public void setLineMode(boolean value) {
-		lineMode = value;
+	public void useLineMode() {
+		graph = getLineVersion(graph);
 	}
 	
 	public String PrintNodeCoverage() {
@@ -115,7 +114,7 @@ public class TestRequirements {
 			output += "Graph is null\n";
 			return output;
 		}
-				
+			
 		List<Edge> traveledEdges = new LinkedList<Edge>();
 		Node node = graph.getEntryNode();
 		TravelEdges(traveledEdges, node);			
@@ -173,33 +172,7 @@ public class TestRequirements {
 		Edge edge;
 		while(iterator.hasNext()) {
 			edge = iterator.next();
-			int start = edge.GetStart();
-			int end = edge.GetEnd();
-			List<Integer> startEdgeLines = graph.getNode(start).GetSourceCodeLineIds();
-			List<Integer> endEdgeLines = graph.getNode(end).GetSourceCodeLineIds();
-			
-			if (startEdgeLines.size() == 1) {
-				start = startEdgeLines.get(0);
-			} else {
-				for(int i=1; i<startEdgeLines.size()-1; i++) {
-					output += ("[" + (startEdgeLines.get(i-1)) + "," + (startEdgeLines.get(i)) + "]");
-					output += breakLines ? "\n" : " ";
-				}
-				start = startEdgeLines.get(startEdgeLines.size()-1);
-			}
-
-			if (start != endEdgeLines.get(0)) {
-				output += ("[" + start + "," + (endEdgeLines.get(0)) + "]");
-				output += breakLines ? "\n" : " ";
-			}
-			
-			if (endEdgeLines.size() > 1) {
-				for(int i=0; i<startEdgeLines.size()-1; i++) {
-					output += ("[" + (startEdgeLines.get(i)) + "," + (startEdgeLines.get(i+1)) + "]");
-					output += breakLines ? "\n" : " ";
-				}
-			}
-			
+			output += "[" + edge.GetStart() + "," + edge.GetEnd() + "]" + (breakLines ? "\n" : " ");
 		}
 		
 		return output;
@@ -289,10 +262,6 @@ public class TestRequirements {
 		
 		if(graph == null) {
 			return "Graph is null\n";
-		}
-		
-		if(lineMode) {
-			graph = getLineVersion(graph);
 		}
 		
 		List<Node> traveledNodes = new LinkedList<Node>();
