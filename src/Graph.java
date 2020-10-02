@@ -196,6 +196,9 @@ public class Graph {
 	}
 
 	public void buildFromEdges(List<Edge> _edges) {
+		if (debug) {
+			System.out.println("* Building line graph from edges: " + _edges);
+		}
 		List<Integer> addedNodes = new ArrayList<Integer>();
 		for(Edge e : _edges) {
 			int start = e.GetStart();
@@ -250,14 +253,16 @@ public class Graph {
 	}
 
 	private void addNode(String sourceCode, int startingLineId) {
-		if (debug) System.out.println("Adding node for code " + sourceCode + " starting at line " + startingLineId);
+		if (debug) 
+			System.out.println("* Added node for code " + sourceCode + " starting at line " + startingLineId);
 		Node node = new Node(0, sourceCode, false, false);
 		node.SetStartingLineId(startingLineId);
 		nodes.add(node);
 	}
 	
 	private void addEdge(int srcNodeId, int tgtNodeId) {
-		if (debug) System.out.println("Adding edge from " + srcNodeId + " to " + tgtNodeId);
+		if (debug) 
+			System.out.println("* Added edge from " + srcNodeId + " to " + tgtNodeId);
 		edges.add(new Edge(srcNodeId, tgtNodeId));
 	}
 
@@ -422,8 +427,7 @@ public class Graph {
 		}
 		
 		if (debug){
-			System.out.print("\n***** Edges:\n   - numbers correspond to processed source code line numbers (above)\n   - basic block nodes not yet combined\n\n");
-			for (Edge e: edges) System.out.println("("+e.GetStart()+","+e.GetEnd()+")");
+			dumpEdges();
 		}
 	}
 	
@@ -596,5 +600,14 @@ public class Graph {
 		for (int i=0; i<methodCode.size(); i++) 
 			outlines += i + ": " + methodCode.get(i) + "\n";
 		System.out.printf("%s\n", outlines);
+	}
+	
+	private void dumpEdges() {
+		System.out.print("\n***** Edges:\n   "
+				+ "- numbers correspond to processed source code line numbers (above)\n   "
+				+ "- basic block nodes not yet combined\n\n");
+		for (Edge e: edges) 
+			System.out.println("("+e.GetStart()+","+e.GetEnd()+")");
+		System.out.println();
 	}
 }

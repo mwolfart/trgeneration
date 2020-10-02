@@ -16,18 +16,27 @@ public class Helper {
 		if (regexReservedChars.contains(ch)) {
 			ch = "\\" + ch;
 		}
-		return line.matches(".*"+ch+"(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$).*");
+		return line.matches(".*" + ch + Regex.insideQuoteRestriction);
 	}
 	
 	public static boolean lineContainsReservedWord(String line, String word) {
-		return line.matches(".*\\b"+word+"\\b(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$).*");
+		return line.matches(".*\\b" + word + "\\b" + Regex.insideQuoteRestriction);
 	}
 	
-	public static int getIndexOfReservedString(String text, String lookup) {
-		Pattern p = Pattern.compile("\\b"+lookup+"\\b(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$).*");
+	private static int matchPatternOnText(Pattern p, String text) {
 		Matcher m = p.matcher(text);
 		int idx = (m.find() ? m.start() : -1);
 		return idx;
+	}
+	
+	public static int getIndexOfReservedString(String text, String lookup) {
+		Pattern p = Pattern.compile("\\b" + lookup + "\\b" + Regex.insideQuoteRestriction);
+		return matchPatternOnText(p, text);
+	}
+	
+	public static int getIndexOfReservedSymbol(String text, String lookup) {
+		Pattern p = Pattern.compile(lookup + Regex.insideQuoteRestriction);
+		return matchPatternOnText(p, text);
 	}
 	
 	public static int getIndexOfReservedChar(String text, String lookup) {
@@ -35,7 +44,7 @@ public class Helper {
 			lookup = "\\" + lookup;
 		}
 		
-		Pattern p = Pattern.compile(lookup+"(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$).*");
+		Pattern p = Pattern.compile(lookup + Regex.insideQuoteRestriction);
 		Matcher m = p.matcher(text);
 		int match = (m.find() ? m.start() : -1);
 		return match;
@@ -81,6 +90,41 @@ public class Helper {
 	/* TODO: maybe refactor the three next functions */
 	public static int findStartOfBlock(List<String> sourceCode, int startingLine) {
 		return findStartOfBlock(sourceCode, startingLine, false);
+	}
+	
+	public static int getIndexAfterPosition(String text, String lookup, int startIdx) {
+		return startIdx + text.substring(startIdx).indexOf(lookup);
+	}
+	
+	public static int findMatchingParenthesis(String text, int openParenthesisIdx) {
+		for (int i=openParenthesisIdx+1; i<text.length(); i++) {
+			char ch = text.charAt(i);
+			int depth = 0;
+			if (ch == ')' && depth == 0) return i;
+			else if (ch == '(') depth++;
+			else if (ch == ')') depth--;
+		}
+		return -1;
+	}
+	
+	public static List<String> splitByReserved(String text, char lookup) {
+		List<String> fragments = new ArrayList<String>();
+		String fragment = "";
+		boolean insideQuote = false;
+		for (int i=0; i<text.length(); i++) {
+			if (text.charAt(i) == lookup && !insideQuote) {
+				fragments.add(fragment);
+				fragment = "";
+			} else if (text.charAt(i) == '"' && i>0 && text.charAt(i-1) != '\\') {
+				insideQuote = !insideQuote;
+			} else {
+				fragment += text.charAt(i);
+			}
+		}
+		if (fragment.length() > 0) {
+			fragments.add(fragment);
+		}
+		return fragments;
 	}
 
 	/* TODO: Maybe reenginer this */

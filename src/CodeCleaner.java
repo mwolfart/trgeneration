@@ -28,6 +28,10 @@ public class CodeCleaner {
 		lineMappings.clear();
 	}
 	
+	public void setDebug(boolean d) {
+		debug = d;
+	}
+	
 	public void cleanupCode(List<String> codeToCleanup) {
 		processedCode = codeToCleanup;
 		cleanup();
@@ -49,37 +53,59 @@ public class CodeCleaner {
 	}
 	
 	// CURRENT FORMAT CONSTRAINTS:
-	// TODO must use surrounding braces for all loops and conditionals
-	// TODO continue not supported
+	// TODO surrounding brackets aren't always necessary if blocks are simple
+	//   however, nested blocks without brackets will cause problems.
 	private int cleanup() {
 		eliminateComments();
+		if (debug) System.out.println("CLEANUP: Eliminated comments");
 		trimLines();
 		removeBlankLines();
+		if (debug) System.out.println("CLEANUP: Removed blank lines");
 		// convertTernaries();
-		
-		// TODO trim lines each step? There are some spaces causing extra lines.
-		//  actually, in the functions, do not split if its only spaces and tabs
-		moveOpeningBraces();
-		moveCodeAfterOpenedBrace(); // TODO perform before openingBraces?
-		moveClosingBraces();
-		moveCodeAfterClosedBrace();
-		trimLines();
-		// At this point, all opening braces end a line and all closing braces are on their own line;
-
-		convertForEachToFor();
+		formatBrackets();
+		if (debug) System.out.println("CLEANUP: Formatted brackets");
 		trimLines();
 		separateLinesWithSemicolons();
+		if (debug) System.out.println("CLEANUP: Separated lines with semicolons");
 		trimLines();
 		combineMultiLineStatements();
+		if (debug) System.out.println("CLEANUP: Combined multi-line statements");
+		trimLines();
+		// addBracketsToBlocks();
+		// if (debug) System.out.println("CLEANUP: Added brackets to necessary items");
+		// trimLines();
+		convertForEachToFor();
+		if (debug) System.out.println("CLEANUP: Converted forEachs to fors");
+		trimLines();
+		separateLinesWithSemicolons();
+		if (debug) System.out.println("CLEANUP: Separated lines with semicolons");
 		trimLines();
 		convertForToWhile();
+		if (debug) System.out.println("CLEANUP: Converted fors to whiles");
 		trimLines();
 		separateLinesWithSemicolons(); // separating again in case of continues
+		if (debug) System.out.println("CLEANUP: Separated lines with semicolons");
 		trimLines();
 		separateCaseStatements();
+		if (debug) System.out.println("CLEANUP: Separated case statements");
 		trimLines();
-		
+
+		if (debug) System.out.println("CLEANUP DONE! Resulting code:");
+		if (debug) dumpCode();
 		return Defs.success;
+	}
+	
+	private void formatBrackets() {
+		// TODO trim lines each step? There are some spaces causing extra lines.
+		//  actually, in the functions, do not split if its only spaces and tabs
+		moveOpeningBrackets();
+		trimLines();
+		moveCodeAfterOpenedBracket();
+		trimLines();
+		moveClosingBrackets();
+		trimLines();
+		moveCodeAfterClosedBracket();
+		// At this point, all opening brackets end a line and all closing brackets are on their own line
 	}
 
 	// Trim all lines (remove indents and other leading/trailing whitespace)
@@ -91,11 +117,11 @@ public class CodeCleaner {
 	
 	private void eliminateComments() {		
 		for (int i=0; i<processedCode.size(); i++) {
-			int idxSingle = processedCode.get(i).indexOf("//"); 
-			int idxMulti = processedCode.get(i).indexOf("/*");
+			int idxSingle = Helper.getIndexOfReservedSymbol(processedCode.get(i), "//"); 
+			int idxMulti = Helper.getIndexOfReservedSymbol(processedCode.get(i), "/\\*"); 
 			int idx = (idxSingle >= 0 && idxMulti >= 0) ? 
 					Math.min(idxSingle, idxMulti) : Math.max(idxSingle, idxMulti);
-			
+					
 			if (idx == -1) {
 				continue;
 			} else if (idx == idxSingle) {
@@ -155,6 +181,45 @@ public class CodeCleaner {
 		processedCode.removeAll(Collections.singleton(""));
 	}
 	
+	private void addBracketsToBlocks() {
+		boolean mustReformatBrackets = false;
+		for (int i = 0; i < processedCode.size(); i++) {
+			String curLine = processedCode.get(i);
+			
+			int idxWord = Helper.getIndexOfReservedString(curLine, "(while|if|for|else)");
+			if (idxWord == -1) continue;
+			
+			int idxOpen = Helper.getIndexAfterPosition(curLine, "(", idxWord);
+			int idxClose = Helper.findMatchingParenthesis(curLine, idxOpen);
+			int idx;
+			
+			if (idxOpen == -1 && idxClose == -1) {
+				idx = idxWord+4; // else
+			} else if (idxClose == -1) {
+				i += 2;
+				curLine = processedCode.get(i);
+				idx = Helper.findMatchingParenthesis(curLine, 0); // for
+			} else idx = idxClose;
+			
+			while (curLine.charAt(idx) == ' ' && curLine.charAt(idx) == '\t') {
+				idx++;
+			}
+			
+			if (curLine.charAt(idx) != '{') {
+				int blockStart = idx;
+				int blockEnd = Helper.getIndexAfterPosition(curLine, ";", blockStart) + 1;
+				String newLine = curLine.substring(0, blockStart+1)
+						+ "{ " + curLine.substring(blockStart+1, blockEnd)
+						+ " }";	
+				processedCode.set(i, newLine);
+				mustReformatBrackets = true;
+			}
+		}
+		if (mustReformatBrackets) {
+			formatBrackets();
+		}
+	}
+	
 	// convert ternary operations into ifs
 	// ifs are inserted in the same lines, so no mapping needs to be done
 	
@@ -169,9 +234,9 @@ public class CodeCleaner {
 	}
 	*/
 	
-	// Move opening braces on their own line to the previous line
+	// Move opening brackets on their own line to the previous line
 	// Note: curly bracket must be alone
-	private void moveOpeningBraces() {
+	private void moveOpeningBrackets() {
 		int numRemovedLines = 0;
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 
@@ -194,8 +259,8 @@ public class CodeCleaner {
 		lineMappings.add(mapping);
 	}
 
-	// Move any code after an opening brace to the next line
-	private void moveCodeAfterOpenedBrace() {
+	// Move any code after an opening bracket to the next line
+	private void moveCodeAfterOpenedBracket() {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int numAddedLines = 0;
 		
@@ -207,12 +272,12 @@ public class CodeCleaner {
 					mapping.get(oldLineId) : new ArrayList<Integer>());
 			targetLinesIds.add(i);
 			
-			// find brace and check if there is code after
+			// find bracket and check if there is code after
 			int idx = Helper.getIndexOfReservedChar(processedCode.get(i), "{");
-			boolean hasCodeAfterBrace = (idx > -1 
+			boolean hasCodeAfterBracket = (idx > -1 
 					&& idx < processedCode.get(i).length()-1);
 			
-			if (hasCodeAfterBrace) { 
+			if (hasCodeAfterBracket) { 
 				String preceding = processedCode.get(i).substring(0, idx+1);
 				String trailing = processedCode.get(i).substring(idx+1);
 				processedCode.add(i+1, trailing); //insert the text right of the { as the next line
@@ -228,8 +293,8 @@ public class CodeCleaner {
 		lineMappings.add(mapping);
 	}
 	
-	// Move closing braces NOT starting a line to the next line
-	private void moveClosingBraces() {
+	// Move closing brackets NOT starting a line to the next line
+	private void moveClosingBrackets() {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int numAddedLines = 0;
 		
@@ -258,26 +323,26 @@ public class CodeCleaner {
 		lineMappings.add(mapping);
 	}
 	
-	// Move any code after a closing brace to the next line
-	private void moveCodeAfterClosedBrace() {
+	// Move any code after a closing bracket to the next line
+	private void moveCodeAfterClosedBracket() {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int numAddedLines = 0;
 		
 		for (int i=0; i<processedCode.size(); i++) {
 			int oldLineId = i-numAddedLines;
-
+			
 			// add current line to targets
 			List<Integer> targetLinesIds = (mapping.containsKey(oldLineId) ? 
 					mapping.get(oldLineId) : new ArrayList<Integer>());
 			targetLinesIds.add(i);
 			
 			int idx = Helper.getIndexOfReservedChar(processedCode.get(i), "}"); 
-			if (idx > -1 && processedCode.get(i).length() > 1) { // this means there is text after the {
+			if (idx > -1 && processedCode.get(i).length() > 1) { // this means there is text after the }
 				String trailing = processedCode.get(i).substring(idx+1);
 				String preceding = processedCode.get(i).substring(0, idx+1);
 
-				processedCode.add(i+1, trailing); // insert the text right of the { as the next line
-				processedCode.set(i, preceding); // remove the text right of the { on the current line
+				processedCode.add(i+1, trailing); // insert the text right of the } as the next line
+				processedCode.set(i, preceding); // remove the text right of the } on the current line
 				
 				mapping.put(oldLineId, targetLinesIds);
 				numAddedLines++;
@@ -293,12 +358,11 @@ public class CodeCleaner {
 	private void separateLinesWithSemicolons() {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int numAddedLines = 0;
-		
+
 		for (int i=0; i < processedCode.size(); i++) {
 			int oldLineId = i-numAddedLines;
 			List<Integer> targetLinesIds = new ArrayList<Integer>();
-			
-			List<String> statements = Helper.initArray(processedCode.get(i).split(";"));
+			List<String> statements = Helper.splitByReserved(processedCode.get(i), ';');
 			
 			targetLinesIds.add(i);
 			if (statements.size() > 1) {
@@ -318,7 +382,7 @@ public class CodeCleaner {
 				mapping.put(oldLineId, targetLinesIds);
 			}			
 		}
-		
+
 		lineMappings.add(mapping);
 	}
 	
@@ -588,11 +652,10 @@ public class CodeCleaner {
 	}
 	
 	public void dumpCode() {
-		System.out.println(" ***** Clean source code: ");
-		for(int n=0; n<processedCode.size(); n++) {
-			System.out.println(processedCode.get(n));
-		}
-		System.out.println(" ***** End of source code");
+		String outlines = "\n***** Clean Source Code:\n\n";
+		for (int i=0; i<processedCode.size(); i++) 
+			outlines += i + ": " + processedCode.get(i) + "\n";
+		System.out.printf("%s\n", outlines);
 	}
 	
 	public void dumpLastMap() {

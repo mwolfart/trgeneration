@@ -27,6 +27,9 @@ public class TestRequirements {
 	}
 	
 	public void useLineMode() {
+		if (debug) {
+			System.out.println("* Generating line version for the graph...");
+		}
 		graph = getLineVersion(graph);
 	}
 	

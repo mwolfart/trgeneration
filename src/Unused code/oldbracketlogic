@@ -1,0 +1,44 @@
+for (int i = 0; i < processedCode.size(); i++) {
+			int idxWord = Helper.getIndexOfReservedString(processedCode.get(i), "(while|for|if)");
+			if (idxWord == -1) return;
+			
+			// find end of condition
+			int idxOpen = Helper.getIndexAfterPosition(processedCode.get(i), "(", idxWord);
+			while (idxOpen == -1) {
+				i++;
+				idxOpen = Helper.getIndexAfterPosition(processedCode.get(i), "(", idxWord);
+			}
+			int idxClose = -1;
+			while (idxClose == -1) {
+				String curLine = processedCode.get(i);
+				int depth = 0;
+				for(int idx = idxOpen; idx < curLine.length(); idx++) {
+					char ch = curLine.charAt(idx);
+					if (ch == ')' && depth == 0) idxClose = idx;
+					else if (ch == ')' || ch == ']' || ch == '}') depth--;
+					else if (ch == '(' || ch == '[' || ch == '{') depth++;
+				}
+				if (idxClose == -1) i++;
+				idxOpen = 0;
+			}
+			
+			
+		
+			
+			
+			/*
+			if (!processedCode.get(i).substring(idxClose).matches("\\s*\\{.*")) {
+				if (!instruction.substring(idxClose).matches("\\s*$")) {
+					// true clause is on the same line
+					int blockEndIdx = idxClose + instruction.substring(idxClose).indexOf(";");
+					if (blockEndIdx == -1) blockEndIdx = idxWord + instruction.length();
+					String newLine = processedCode.get(i).substring(0, idxClose)
+							+ "{" + processedCode.get(i).substring(idxClose+1, blockEndIdx)
+							+ " }" + processedCode.get(i).substring(blockEndIdx+1);
+					processedCode.set(i, newLine);
+				} else {
+					// true clause is in the next line
+				}
+			}
+			*/
+		}

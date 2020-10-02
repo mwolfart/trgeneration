@@ -31,6 +31,7 @@ public class CodeProcessor {
 		
 	public void setDebug(boolean d) { 
 		debug = d; 
+		cleaner.setDebug(d);
 	}
 	
 	public void addSourceCodeLine(String line) {
@@ -45,6 +46,8 @@ public class CodeProcessor {
 	
 	public void build() {
 		cleaner.cleanupCode(processedCode);
+		if (debug)
+			cleaner.dumpCode();
 		processClasses();
 	}
 	
@@ -155,6 +158,14 @@ public class CodeProcessor {
 			String methodName = getMethodNameFromLineId(methodStartLine);
 			String methodParams = getMethodParamsFromLineId(methodStartLine);
 			String methodSignature = methodName + methodParams;
+			
+			if (methodEndLine - methodStartLine < 3) {
+				if (debug) {
+					System.out.println("Method " + methodSignature + " is too short and will be ignored.");
+				}
+				continue;
+			}
+			
 			Helper.createDir(fileDir + className + "\\" + methodSignature);
 			
 			List<String> methodBody = copyCodeBlock(methodStartLine+1, methodEndLine-1);
@@ -179,6 +190,13 @@ public class CodeProcessor {
 				classesBlocks.add(new ImmutablePair<Integer, Integer>(start, end));
 			}
 		}
+		
+		if (debug) {
+			for (Pair<Integer, Integer> p : classesBlocks) {
+				System.out.println("Found class body between lines " + p.getLeft() + " and " + p.getRight());
+			}
+		}
+		
 		return classesBlocks;
 	}
 	
@@ -194,6 +212,13 @@ public class CodeProcessor {
 				methodBlocks.add(new ImmutablePair<Integer, Integer>(start, end));
 			}
 		}
+		
+		if (debug) {
+			for (Pair<Integer, Integer> p : methodBlocks) {
+				System.out.println("Found method body between lines " + p.getLeft() + " and " + p.getRight());
+			}
+		}
+		
 		return methodBlocks;
 	}
 
