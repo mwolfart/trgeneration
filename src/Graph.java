@@ -115,7 +115,7 @@ public class Graph {
 	public List<Integer> getLineIdsFromNodes(List<Node> nodeList) {
 		List<Integer> lineIds = new ArrayList<Integer>();
 		for (Node n : nodeList) {
-			lineIds.addAll(n.GetSourceCodeLineIds());
+			lineIds.add(n.getLastLineId());
 		}
 		return lineIds;
 	}
@@ -367,22 +367,14 @@ public class Graph {
 					conditionalStartLines.remove(conditionalStartLines.size()-1);
 				}
 				else if (methodCode.get(openline).toLowerCase().matches("^\\bswitch\\b.*")){
-
-					//add edges to cases
-					for (int k=openline; k<i; k++){ //iterate through the case statement
-						if (methodCode.get(k).matches("^\\b(case|default)\\b.*")){
-							if (methodCode.get(k).matches(":$")) addEdge(openline,k);
-							else addEdge(openline,getNextInstructionLineId(k));  //didnt't split lines at : so could be the next line
-						}
-						if (methodCode.get(k).matches("^\\bbreak\\b;")) addEdge(k,getNextInstructionLineId(i));
-					}
+					addEdgesForSwitch(openline, i);
 				}
 			}
 			else {
 				//TODO REMOVE AND CHECK IF IT CREATES SEPARATE NODES
 				
 				//we'll add a node and an edge unless these are not executable lines
-				if (!methodCode.get(i).matches("^\\b(do|else(?!\\s+if)|case|default)\\b.*")){
+				if (!methodCode.get(i).matches("^\\b(do|else(?!\\s+if)|default)\\b.*")){
 					addNode(line,i);
 					if (methodCode.get(i).matches("^\\bcontinue\\b.*")) {
 						int loopStart = Helper.findConditionalLine(methodCode, i);
@@ -390,14 +382,13 @@ public class Graph {
 					}
 					if (i > 0) {
 						String previousInstruction = methodCode.get(getPreviousInstructionLineId(i));
-						if (!previousInstruction.matches("^\\b(do|else(?!\\s+if)|case|default|continue)\\b.*") 
+						if (!previousInstruction.matches("^\\b(do|else(?!\\s+if)|case|default|continue|break|switch)\\b.*") 
 								&& !methodCode.get(i-1).equals("}")){
 							addEdge(getPreviousInstructionLineId(i), i);
 						}
 					}
 				}
 			}
-						
 		}
 		
 		// remove entry edges
@@ -428,6 +419,27 @@ public class Graph {
 		
 		if (debug){
 			dumpEdges();
+		}
+	}
+	
+	private void addEdgesForSwitch(int switchStartLineId, int switchEndLineId) {
+		for (int i = switchStartLineId; i < switchEndLineId; i++){ //iterate through the case statement
+			if (methodCode.get(i).matches("^\\bcase\\b.*")) {
+				addEdge(switchStartLineId, i);
+				int nextInstrId = getNextInstructionLineId(i);
+				if (methodCode.get(nextInstrId).matches("^\\bdefault\\b.*")) {
+					addEdge(i, getNextInstructionLineId(nextInstrId));
+				} else {
+					addEdge(i, nextInstrId);
+				}
+			}
+			else if (methodCode.get(i).matches("^\\bdefault\\b.*")) {
+				int nextInstrId = getNextInstructionLineId(i);
+				addEdge(switchStartLineId, nextInstrId);
+			}
+			else if (methodCode.get(i).matches("^break;")) {
+				addEdge(i, getNextInstructionLineId(i));
+			}
 		}
 	}
 	

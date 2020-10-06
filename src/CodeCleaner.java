@@ -547,9 +547,9 @@ public class CodeCleaner {
 		
 		int i;
 		for(i = 3; i < line.length() && info.size() < 2; i++) {
-			if (line.charAt(i) != '(' && line.charAt(i) != ' ' && line.charAt(i) != '\t') {
+			if (line.charAt(i) != '(' && line.charAt(i) != ' ' && line.charAt(i) != '\t' && line.charAt(i) != ':') {
 				buffer += line.charAt(i);
-			} else if ((line.charAt(i) == ' ' || line.charAt(i) == '\t') && buffer.length() > 0) {
+			} else if ((line.charAt(i) == ' ' || line.charAt(i) == '\t' || line.charAt(i) == ':') && buffer.length() > 0) {
 				info.add(buffer);
 				buffer = "";
 			}
@@ -575,7 +575,8 @@ public class CodeCleaner {
 				//find the opening
 				int openline = Helper.findStartOfBlock(processedCode, i-1);
 
-				if (processedCode.get(openline).toLowerCase().matches("^\\b(while|do|if|else)\\b.*")
+				if ((processedCode.get(openline).toLowerCase().matches("^\\b(while|do|if|else)\\b.*")
+						|| processedCode.get(openline).matches(Regex.methodSignature))
 						&& processedCode.get(i-1).equals("}")) {
 					processedCode.add(i, "dummy_node;");
 					numAddedLines++;
