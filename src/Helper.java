@@ -61,7 +61,7 @@ public class Helper {
 	}
 	
 	public static void writeFile(String filePath, String content) {
-		filePath = filePath.replace("<", "{").replace(">", "}");
+		filePath = filePath.replace("<", "{").replace(">", "}").replace("?", "").replace("\"", "'");
 		try {
 			File file = new File(filePath);
 			FileWriter fr = new FileWriter(file, true);

@@ -59,6 +59,10 @@ public class Graph {
 		return methodSignature;
 	}
 	
+	public List<Edge> getEdges() {
+		return edges;
+	}
+	
 	// Get the first entry node
 	public Node getEntryNode() {
 		for (Node n : nodes) {
@@ -111,8 +115,8 @@ public class Graph {
 		}
 		return chosenEdges;
 	}
-
-	public List<Integer> getLineIdsFromNodes(List<Node> nodeList) {
+	
+	public List<Integer> getLastLineIdsFromNodes(List<Node> nodeList) {
 		List<Integer> lineIds = new ArrayList<Integer>();
 		for (Node n : nodeList) {
 			lineIds.add(n.getLastLineId());
@@ -185,8 +189,8 @@ public class Graph {
 	
 	public String listLineEdges(Map<Integer, List<Integer>> mapping) {
 		String output = "";
-		output += "Entry line: " + getLineIdsFromNodes(getEntryNodeList()).get(0) + "\n";
-		output += "Exit lines: " + getLineIdsFromNodes(getExitNodeList()) + "\n";
+		output += "Entry line: " + getEntryNodeList().get(0).GetStartingLineId() + "\n";
+		output += "Exit lines: " + getLastLineIdsFromNodes(getExitNodeList()) + "\n";
 		
 		List<Edge> lineEdges = getLineEdges();
 		for (Edge e : lineEdges) {
@@ -246,6 +250,45 @@ public class Graph {
 		}
 		
 		return lineEdgeList;
+	}
+	
+	public void simplifyDummyEdges() {
+		// first simplify edges
+		List<Node> nodesToUnsetExit = new ArrayList<>();
+		
+		for (int edgeId=0; edgeId < edges.size(); edgeId++) {
+			Edge curEdge = edges.get(edgeId);
+			Node tgtNode = getNode(curEdge.GetEnd());
+			if (tgtNode.isDummy()) {
+				int startNodeId = curEdge.GetStart();
+				if (tgtNode.isExit()) {
+					getNode(startNodeId).SetExit(true);
+					nodesToUnsetExit.add(tgtNode);
+				} else {
+					List<Edge> tgtNodeEdges = getEdgesStartingFrom(tgtNode);
+					for (Edge tgtEdge : tgtNodeEdges) {
+						int newTarget = tgtEdge.GetEnd();
+						edges.add(new Edge(startNodeId, newTarget));
+					}
+				}
+				edges.remove(edgeId);
+				edgeId--;
+			}
+		}
+		
+		// remove remaining edges leaving from dummy nodes
+		for (int edgeId=0; edgeId < edges.size(); edgeId++) {
+			Edge curEdge = edges.get(edgeId);
+			Node srcNode = getNode(curEdge.GetStart());
+			if (srcNode.isDummy()) {
+				edges.remove(edgeId);
+				edgeId--;
+			}
+		}
+		
+		for (Node dummyNode : nodesToUnsetExit) {
+			dummyNode.SetExit(false);
+		}
 	}
 	
 	public void writePng() {
@@ -404,7 +447,7 @@ public class Graph {
 		
 		//fix any returns before the last line
 		for (int i=0; i<nodes.size(); i++) {
-			if (Helper.lineContainsReservedWord(nodes.get(i).GetSourceCode(), "return")) {
+			if (Helper.lineContainsReservedWord(nodes.get(i).GetSourceCode(), "(return|throw)")) {
 				//mark node as an exit node
 				Node n = nodes.get(i);
 				n.SetExit(true);

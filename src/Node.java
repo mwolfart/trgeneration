@@ -63,6 +63,10 @@ public class Node {
 		return "Node" + nodeNumber;
 	}
 	
+	public boolean isDummy() { 
+		return (Helper.lineContainsReservedWord(sourceCode, "dummy_node"));
+	}
+	
 	public boolean isSameNode(Node _node) {
 		return nodeNumber == _node.GetNodeNumber();
 	}

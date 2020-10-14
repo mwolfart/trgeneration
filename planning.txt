@@ -1,22 +1,17 @@
-TODOs
-[MED/HIGH]
-- Classes inside classes are not supported (medium-high effort)
-- Functions inside methods are not supported (medium-high effort)
+high
+ |
+ V
+low
 
-[MED]
-- Try catch is not properly mapped (high effort)
-- Functions as variables/objects are not supported (high effort)
-- Ternary operator is interpreted as a normal instruction (high effort)
-- throws (for methods) and throw (as instructions) are not supported
+FEATURES
+2 - Try-catch-finally is not properly mapped (high effort)
+3 - Classes inside methods are not fully supported (low-medium effort)
+4 - No brackets in blocks not fully supported (medium-high effort)
+5 - Static initializers not covered (medium effort)
+6 - Functions as variables/objects are not supported (high effort)
+7 - Ternary operator is interpreted as a normal instruction (high effort)
 
-[LOW]
-- Static initializers not covered
-- Source code corresponding to each node is not drawn along with image (high effort)
-- Review code manipulation in cleanup process: some methods might have to come before others (medium effort)
-- [refactoring] trimLines is called many times in the cleanup process (medium effort)
-- [refactoring] functions that match brackets (medium effort)
-- [refactoring] graphgen loop
-
-[VERIFY]
-- Logic will not test for all unbalanced objects, like parentheses (medium-high effort) (?)
-- Check how algorithm behaves if an object is declared (with brackets) for instance: new A({}) (?)
+BUGS
+A - Matrixes not fully supported (medium-high effort)
+B - (not investigated) For & for each causing repeated edges in EC
+F - (not investigated) method is not properly processed, says invalid

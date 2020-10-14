@@ -174,6 +174,7 @@ public class CodeProcessor {
 			
 			methodGraph.buildNodes();
 			methodGraph.writePng();
+			methodGraph.simplifyDummyEdges();
 			methodGraph.adjustLineNumbers(methodStartLine+1, lineMap);
 			graphs.add(methodGraph);	
 		}

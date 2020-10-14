@@ -347,7 +347,7 @@ public class TestRequirements {
 		Graph lineGr = new Graph(gr.getMethodName(), gr.getMethodSignature(), gr.getClassName(), debug);
 		lineGr.buildFromEdges(gr.getLineEdges());
 		int entryLine = gr.getEntryNode().GetStartingLineId();
-		List<Integer> exitLines = gr.getLineIdsFromNodes(gr.getExitNodeList());
+		List<Integer> exitLines = gr.getLastLineIdsFromNodes(gr.getExitNodeList());
 		lineGr.setEntryNode(entryLine);
 		lineGr.setExitNodes(exitLines);
 		return lineGr;

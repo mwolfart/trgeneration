@@ -194,12 +194,14 @@ public class CodeCleaner {
 			int idx;
 			
 			if (idxOpen == -1 && idxClose == -1) {
-				idx = idxWord+4; // else
+				idx = idxWord+3; // else
 			} else if (idxClose == -1) {
 				i += 2;
 				curLine = processedCode.get(i);
 				idx = Helper.findMatchingParenthesis(curLine, 0); // for
 			} else idx = idxClose;
+			
+			idx++;
 			
 			while (curLine.charAt(idx) == ' ' && curLine.charAt(idx) == '\t') {
 				idx++;
@@ -208,8 +210,8 @@ public class CodeCleaner {
 			if (curLine.charAt(idx) != '{') {
 				int blockStart = idx;
 				int blockEnd = Helper.getIndexAfterPosition(curLine, ";", blockStart) + 1;
-				String newLine = curLine.substring(0, blockStart+1)
-						+ "{ " + curLine.substring(blockStart+1, blockEnd)
+				String newLine = curLine.substring(0, blockStart)
+						+ "{ " + curLine.substring(blockStart, blockEnd)
 						+ " }";	
 				processedCode.set(i, newLine);
 				mustReformatBrackets = true;
