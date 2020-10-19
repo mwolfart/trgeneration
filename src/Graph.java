@@ -219,8 +219,15 @@ public class Graph {
 	
 	public void adjustLineNumbers(int blockStartingLine, Map<Integer, List<Integer>> mapping) {
 		for (Node n : nodes) {
+			if (debug) {
+				System.out.println("Updating starting line id for node " + n.GetNodeNumber());
+				System.out.println("Old values were: " + n.GetSourceCodeLineIds());
+			}
 			n.SetStartingLineId(n.GetStartingLineId() + blockStartingLine);
 			n.applyLineMapping(mapping);
+			if (debug) {
+				System.out.println("New values are: " + n.GetSourceCodeLineIds());
+			}
 		}
 	}
 
@@ -275,7 +282,7 @@ public class Graph {
 				edgeId--;
 			}
 		}
-		
+
 		// remove remaining edges leaving from dummy nodes
 		for (int edgeId=0; edgeId < edges.size(); edgeId++) {
 			Edge curEdge = edges.get(edgeId);
@@ -285,7 +292,7 @@ public class Graph {
 				edgeId--;
 			}
 		}
-		
+
 		for (Node dummyNode : nodesToUnsetExit) {
 			dummyNode.SetExit(false);
 		}
@@ -311,8 +318,9 @@ public class Graph {
 
 	private int getPreviousInstructionLineId(int startingLineId) {
 		int prevLineId = startingLineId-1;
-		while (prevLineId > -1 && methodCode.get(prevLineId).equals("}"))
+		while (prevLineId > -1 && methodCode.get(prevLineId).equals("}")) {
 			prevLineId--;
+		}
 		return prevLineId;
 	}
 	
@@ -346,9 +354,10 @@ public class Graph {
 						addEdge(openline,getNextInstructionLineId(i));
 					}
 					else if (methodCode.get(i+1).toLowerCase().matches("^\\b(while)\\b.*")) { //do
-						addEdge(getPreviousInstructionLineId(openline), getNextInstructionLineId(openline)); //entry edge that skips the "do" statement
+						addEdge(getPreviousInstructionLineId(openline), openline); //entry into "do"
+						addEdge(openline, getNextInstructionLineId(openline)); //entry into block
 						addEdge(getPreviousInstructionLineId(i),i+1); //into loop test
-						addEdge(i+1,getNextInstructionLineId(openline)); //looping edge
+						addEdge(i+1,openline); //looping edge
 						addEdge(i+1,getNextInstructionLineId(i+1)); //loop exit edge
 					} else {
 						System.err.println("Do without while");
@@ -385,9 +394,9 @@ public class Graph {
 						
 						int prevInstrId = getPreviousInstructionLineId(i);
 						if (!methodCode.get(prevInstrId).matches("^\\bcontinue\\b.*")) {
-							addEdge(prevInstrId,getNextInstructionLineId(i));
+							addEdge(prevInstrId, getNextInstructionLineId(i));
 						}
-						addEdge(openline,getNextInstructionLineId(i));
+						addEdge(openline, getNextInstructionLineId(i));
 					}
 				}
 				else if (methodCode.get(openline).toLowerCase().substring(0,4).equals("else")) {
@@ -399,7 +408,8 @@ public class Graph {
 					edgeStartLinesList.get(edgeStartLinesList.size()-1).add(i-1);
 					
 					int conditionalStartLine = conditionalStartLines.get(conditionalStartLines.size()-1);
-					addEdge(conditionalStartLine,openline+1);
+					addEdge(conditionalStartLine,openline);
+					addEdge(openline,openline+1);
 					
 					for (Integer start: edgeStartLinesList.get(edgeStartLinesList.size()-1)){
 						addEdge(start, i+1);
@@ -412,12 +422,38 @@ public class Graph {
 				else if (methodCode.get(openline).toLowerCase().matches("^\\bswitch\\b.*")){
 					addEdgesForSwitch(openline, i);
 				}
+				else if (methodCode.get(openline).toLowerCase().matches("^%forcenode% \\btry\\b.*")) {
+					// TODO check if try may not have catch
+					if (!methodCode.get(i+1).toLowerCase().matches("^%forcenode% \\bcatch\\b.*")) {
+						System.err.println("Try without catch block");
+						System.exit(2);
+					}
+					
+					List<Integer> catchClosingLines = new ArrayList<>();
+					// TODO check if order try -> catch -> .. -> catch -> finally is guaranteed
+					int tryExitLine = i+1;
+					do {
+						int endCatchBlock = Helper.findEndOfBlock(methodCode, tryExitLine+1);
+						catchClosingLines.add(getPreviousInstructionLineId(endCatchBlock));
+						tryExitLine = endCatchBlock+1;
+					} while (methodCode.get(tryExitLine).toLowerCase().matches("^%forcenode% \\bcatch\\b.*"));
+					int finallyClosingLine = -1;
+					if (methodCode.get(tryExitLine).matches("^%forcenode% \\bfinally\\b.*")) {
+						finallyClosingLine = Helper.findEndOfBlock(methodCode, tryExitLine+1);
+					}
+					addEdge(getPreviousInstructionLineId(i), tryExitLine);
+					for (Integer closingLine : catchClosingLines) {
+						addEdge(closingLine, tryExitLine);
+					}
+					if (finallyClosingLine > -1) {
+						addEdge(getPreviousInstructionLineId(finallyClosingLine), finallyClosingLine+1);
+					}
+				}
 			}
 			else {
 				//TODO REMOVE AND CHECK IF IT CREATES SEPARATE NODES
-				
 				//we'll add a node and an edge unless these are not executable lines
-				if (!methodCode.get(i).matches("^\\b(do|else(?!\\s+if)|default)\\b.*")){
+				//if (!methodCode.get(i).matches(Regex.nonExecutableLines)){
 					addNode(line,i);
 					if (methodCode.get(i).matches("^\\bcontinue\\b.*")) {
 						int loopStart = Helper.findConditionalLine(methodCode, i);
@@ -425,12 +461,12 @@ public class Graph {
 					}
 					if (i > 0) {
 						String previousInstruction = methodCode.get(getPreviousInstructionLineId(i));
-						if (!previousInstruction.matches("^\\b(do|else(?!\\s+if)|case|default|continue|break|switch)\\b.*") 
+						if (!previousInstruction.matches(Regex.reservedInstructions) 
 								&& !methodCode.get(i-1).equals("}")){
 							addEdge(getPreviousInstructionLineId(i), i);
 						}
 					}
-				}
+				//}
 			}
 		}
 		
@@ -478,7 +514,8 @@ public class Graph {
 			}
 			else if (methodCode.get(i).matches("^\\bdefault\\b.*")) {
 				int nextInstrId = getNextInstructionLineId(i);
-				addEdge(switchStartLineId, nextInstrId);
+				addEdge(switchStartLineId, i);
+				addEdge(i, nextInstrId);
 			}
 			else if (methodCode.get(i).matches("^break;")) {
 				addEdge(i, getNextInstructionLineId(i));
@@ -517,7 +554,8 @@ public class Graph {
 		for (int i=0; i<nodes.size(); i++){
 			
 			// if there's more than one edge (or no edges) leaving this node, we can't combine
-			if (nodes.get(i).GetEdgesFrom() != 1 || nodes.get(i).GetSourceCode().contains("%forcenode%")) continue;
+			if (nodes.get(i).GetEdgesFrom() != 1 || nodes.get(i).GetSourceCode().contains("%forcenode%")
+					|| nodes.get(i).GetSourceCode().contains("%forceendnode%")) continue;
 			
 			// find the edge leaving this node
 			int midEdge = 0;
@@ -529,8 +567,8 @@ public class Graph {
 			if (nodes.get(nextNode).GetEdgesTo() > 1 || nodes.get(nextNode).GetSourceCode().contains("%forcenode%")) continue;
 			
 			// if it's a self-loop we can't combine
-                        if (nextNode == i) continue;	
-
+                        if (nextNode == i) continue;
+                        
 			// If we got here we can combine the nodes
 						
 			//copy the sourceline (we'll delete nextNode)

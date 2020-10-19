@@ -89,6 +89,7 @@ public class CodeCleaner {
 		separateCaseStatements();
 		if (debug) System.out.println("CLEANUP: Separated case statements");
 		trimLines();
+		prepareTryCatchBlocks();
 
 		if (debug) System.out.println("CLEANUP DONE! Resulting code:");
 		if (debug) dumpCode();
@@ -445,6 +446,24 @@ public class CodeCleaner {
 			}
 		}
 		lineMappings.add(mapping);
+	}
+	
+	private void prepareTryCatchBlocks() {
+		for (int i=0; i<processedCode.size(); i++) {	
+			if (processedCode.get(i).matches("^try.+$") 
+					|| processedCode.get(i).matches("^catch.+$") 
+					|| processedCode.get(i).matches("^finally.+$")) {
+				processedCode.set(i, "%forcenode% " + processedCode.get(i));
+			}
+			else if (processedCode.get(i).equals("}")) {
+				String startBlockLine = processedCode.get(Helper.findStartOfBlock(processedCode, i-1));
+				if (startBlockLine.matches("^(%forcenode%)* try.+$") 
+						|| startBlockLine.matches("^(%forcenode%)* catch.+$")
+						|| startBlockLine.matches("^(%forcenode%)* finally.+$")) {
+					processedCode.set(i-1, "%forceendnode% " + processedCode.get(i-1));
+				}
+			}
+		}
 	}
 	
 	//turn for loops into while loops
