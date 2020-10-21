@@ -219,14 +219,11 @@ public class Graph {
 	
 	public void adjustLineNumbers(int blockStartingLine, Map<Integer, List<Integer>> mapping) {
 		for (Node n : nodes) {
-			if (debug) {
-				System.out.println("Updating starting line id for node " + n.GetNodeNumber());
-				System.out.println("Old values were: " + n.GetSourceCodeLineIds());
-			}
 			n.SetStartingLineId(n.GetStartingLineId() + blockStartingLine);
 			n.applyLineMapping(mapping);
 			if (debug) {
-				System.out.println("New values are: " + n.GetSourceCodeLineIds());
+				System.out.println("Updated line ids for node " + n.GetNodeNumber() 
+					+ ": " + n.GetSourceCodeLineIds());
 			}
 		}
 	}
@@ -244,8 +241,8 @@ public class Graph {
 		for (Edge e : edges) {
 			Node src = nodes.get(e.GetStart());
 			Node tgt = nodes.get(e.GetEnd());
-			Integer srcLine = src.getLastLineId();
-			Integer tgtLine = tgt.GetStartingLineId();
+			int srcLine = src.getLastLineId();
+			int tgtLine = tgt.GetStartingLineId();
 			if (srcLine != tgtLine) {
 				lineEdgeList.add(new Edge(srcLine, tgtLine));
 			}
@@ -254,7 +251,7 @@ public class Graph {
 		if (lineEdgeList.size() == 0) {
 			int lineId = getEntryNode().GetStartingLineId();
 			lineEdgeList.add(new Edge(lineId, lineId));
-		}
+		}		
 		
 		return lineEdgeList;
 	}

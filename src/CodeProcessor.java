@@ -166,6 +166,10 @@ public class CodeProcessor {
 				continue;
 			}
 			
+			if (debug) {
+				System.out.println("Processing method " + methodSignature + "...");
+			}
+			
 			Helper.createDir(fileDir + className + "\\" + methodSignature);
 			
 			List<String> methodBody = copyCodeBlock(methodStartLine+1, methodEndLine-1);
