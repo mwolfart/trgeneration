@@ -4,14 +4,14 @@ high
 low
 
 FEATURES
-2 - Try-catch-finally is not properly mapped (high effort)
-3 - Classes inside methods are not fully supported (low-medium effort)
-4 - No brackets in blocks not fully supported (medium-high effort)
-5 - Static initializers not covered (medium effort)
-6 - Functions as variables/objects are not supported (high effort)
-7 - Ternary operator is interpreted as a normal instruction (high effort)
+1 - Classes inside methods are not fully supported (low-medium effort)
+2 - Static initializers not covered (medium effort)
+3 - Functions as variables/objects are not supported (high effort)
+4 - Ternary operator is interpreted as a normal instruction (high effort)
+5 - No brackets in do-while and try-catch blocks not fully supported (medium effort)
 
 BUGS
-A - Matrixes not fully supported (medium-high effort)
-B - (not investigated) For & for each causing repeated edges in EC
-F - (not investigated) method is not properly processed, says invalid
+A - catch blocks do not go into EC output (medium effort)
+B - throw inside try will not point to catch(es) (high effort)
+C - Matrixes not fully supported (medium-high effort)
+D - (not investigated) method is not properly processed, says invalid
