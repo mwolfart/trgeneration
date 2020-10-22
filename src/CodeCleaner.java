@@ -71,9 +71,9 @@ public class CodeCleaner {
 		combineMultiLineStatements();
 		if (debug) System.out.println("CLEANUP: Combined multi-line statements");
 		trimLines();
-		// addBracketsToBlocks();
-		// if (debug) System.out.println("CLEANUP: Added brackets to necessary items");
-		// trimLines();
+		addBracketsToBlocks();
+		if (debug) System.out.println("CLEANUP: Added brackets to necessary items");
+		trimLines();
 		convertForEachToFor();
 		if (debug) System.out.println("CLEANUP: Converted forEachs to fors");
 		trimLines();
@@ -199,12 +199,12 @@ public class CodeCleaner {
 			} else if (idxClose == -1) {
 				i += 2;
 				curLine = processedCode.get(i);
-				idx = Helper.findMatchingParenthesis(curLine, 0); // for
+				idx = Helper.findMatchingParenthesis(curLine, -1); // for
 			} else idx = idxClose;
 			
 			idx++;
 			
-			while (curLine.charAt(idx) == ' ' && curLine.charAt(idx) == '\t') {
+			while (curLine.charAt(idx) == ' ' || curLine.charAt(idx) == '\t') {
 				idx++;
 			}
 			

@@ -97,9 +97,9 @@ public class Helper {
 	}
 	
 	public static int findMatchingParenthesis(String text, int openParenthesisIdx) {
+		int depth = 0;
 		for (int i=openParenthesisIdx+1; i<text.length(); i++) {
 			char ch = text.charAt(i);
-			int depth = 0;
 			if (ch == ')' && depth == 0) return i;
 			else if (ch == '(') depth++;
 			else if (ch == ')') depth--;
