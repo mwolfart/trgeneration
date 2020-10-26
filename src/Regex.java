@@ -8,5 +8,5 @@ public class Regex {
 	public static String nonExecutableLines = "^\\b(do|else(?!\\s+if)|default)\\b.*";
 	
 	// TODO do not capture escaped quotes
-	public static String insideQuoteRestriction = "(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$).*";
+	public static String insideQuoteRestriction = "(?=(?:[^\\\"]*\\\"[^\\\"]*\\\")*[^\\\"]*$)(?=(?:[^']*'[^']*')*[^']*$).*";
 }
