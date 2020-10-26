@@ -59,6 +59,9 @@ public class CodeCleaner {
 		eliminateComments();
 		if (debug) System.out.println("CLEANUP: Eliminated comments");
 		trimLines();
+		eliminateAnnotations();
+		if (debug) System.out.println("CLEANUP: Eliminated annotations");
+		trimLines();
 		removeBlankLines();
 		if (debug) System.out.println("CLEANUP: Removed blank lines");
 		// convertTernaries();
@@ -159,6 +162,14 @@ public class CodeCleaner {
 		}
 		
 		return endLine;
+	}
+	
+	private void eliminateAnnotations() {
+		for (int i=0; i<processedCode.size(); i++) {
+			if (processedCode.get(i).matches("^@.*")) {
+				processedCode.set(i, "");
+			}
+		}		
 	}
 	
 	private void removeBlankLines() {		

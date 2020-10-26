@@ -275,7 +275,7 @@ public class CodeProcessor {
 		
 		if (start == -1) {
 			System.err.println("Invalid method name");
-			System.err.println("When trying to get method name at line " + lineId);
+			System.err.println("When trying to get method name at line " + line);
 			System.exit(2);
 		}
 		

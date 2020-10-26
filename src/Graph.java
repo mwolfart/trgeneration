@@ -430,6 +430,7 @@ public class Graph {
 					// TODO check if order try -> catch -> .. -> catch -> finally is guaranteed
 					int tryExitLine = i+1;
 					do {
+						addEdge(openline, tryExitLine);
 						int endCatchBlock = Helper.findEndOfBlock(methodCode, tryExitLine+1);
 						catchClosingLines.add(getPreviousInstructionLineId(endCatchBlock));
 						tryExitLine = endCatchBlock+1;
@@ -499,24 +500,28 @@ public class Graph {
 	}
 	
 	private void addEdgesForSwitch(int switchStartLineId, int switchEndLineId) {
+		int previousBlockId = switchStartLineId;
 		for (int i = switchStartLineId; i < switchEndLineId; i++){ //iterate through the case statement
 			if (methodCode.get(i).matches("^\\bcase\\b.*")) {
-				addEdge(switchStartLineId, i);
+				addEdge(previousBlockId, i);
+				previousBlockId = i;
 				int nextInstrId = getNextInstructionLineId(i);
-				if (methodCode.get(nextInstrId).matches("^\\bdefault\\b.*")) {
-					addEdge(i, getNextInstructionLineId(nextInstrId));
-				} else {
+				if (!methodCode.get(nextInstrId).matches("^\\b(case|default)\\b.*")) {
 					addEdge(i, nextInstrId);
 				}
 			}
 			else if (methodCode.get(i).matches("^\\bdefault\\b.*")) {
 				int nextInstrId = getNextInstructionLineId(i);
-				addEdge(switchStartLineId, i);
+				addEdge(previousBlockId, i);
 				addEdge(i, nextInstrId);
 			}
 			else if (methodCode.get(i).matches("^break;")) {
-				addEdge(i, getNextInstructionLineId(i));
+				addEdge(i, getNextInstructionLineId(switchEndLineId));
 			}
+		}
+		int lastInstr = getPreviousInstructionLineId(switchEndLineId);
+		if (!methodCode.get(lastInstr).matches("^break;")) {
+			addEdge(lastInstr, getNextInstructionLineId(switchEndLineId));
 		}
 	}
 	
