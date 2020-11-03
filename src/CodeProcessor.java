@@ -208,7 +208,7 @@ public class CodeProcessor {
 	/* TODO: Support methods/functions inside methods */
 	private List<Pair<Integer, Integer>> getMethodBlocks(int classStartLineId, int classEndLineId) {
 		List<Pair<Integer, Integer>> methodBlocks = new ArrayList<Pair<Integer, Integer>>();
-		
+
 		for (int i=classStartLineId; i<classEndLineId; i++) {
 			if (processedCode.get(i).matches(Regex.methodSignature) 
 					&& !Helper.lineContainsReservedWord(processedCode.get(i), Regex.reservedMethods)) {

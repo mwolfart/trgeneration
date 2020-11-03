@@ -219,7 +219,7 @@ public class CodeCleaner {
 				idx++;
 			}
 			
-			if (curLine.charAt(idx) != '{') {
+			if (curLine.charAt(idx) != '{' && curLine.charAt(idx) != ';') {
 				int blockStart = idx;
 				int blockEnd = Helper.getIndexAfterPosition(curLine, ";", blockStart) + 1;
 				String newLine = curLine.substring(0, blockStart)
