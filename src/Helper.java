@@ -51,7 +51,7 @@ public class Helper {
 	}
 	
 	public static void createDir(String dirPath) {
-		dirPath = dirPath.replace("<", "{").replace(">", "}");
+		dirPath = dirPath.replace("<", "{").replace(">", "}").replace("?", "QM");
 		File dir = new File(dirPath);
 		if (dir.exists()) return;
 		if (!dir.mkdir()) {
@@ -73,7 +73,7 @@ public class Helper {
 	}
 	
 	public static void writePng(String path, String dot) {
-		path = path.replace("<", "{").replace(">", "}");
+		path = path.replace("<", "{").replace(">", "}").replace("?", "QM");
 		File out = new File(path);
 		GraphViz gv = new GraphViz();
 		gv.writeGraphToFile(gv.getGraph(dot, "png"), out);
@@ -192,7 +192,9 @@ public class Helper {
 				depth++;
 			} else if (Helper.lineContainsReservedChar(curLine, "{") && depth > 0) {
 				depth--;
-			} else if (Helper.lineContainsReservedChar(curLine, "{") && curLine.matches("^\\b(do|while)\\b.*")) {
+			} else if (Helper.lineContainsReservedChar(curLine, "{") 
+					&& (curLine.matches("^\\b(do|while)\\b.*")
+							|| curLine.matches("^[a-zA-Z_]+[a-zA-Z0-9_]*:\\s*(do|while).*"))) {
 				conditionalLine = curLineId;
 			}
 			curLineId--;

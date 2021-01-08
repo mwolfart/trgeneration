@@ -93,7 +93,7 @@ public class CodeCleaner {
 		if (debug) System.out.println("CLEANUP: Separated case statements");
 		trimLines();
 		prepareTryCatchBlocks();
-
+		if (debug) System.out.println("CLEANUP: Prepared try-catch blocks");
 		if (debug) System.out.println("CLEANUP DONE! Resulting code:");
 		if (debug) dumpCode();
 		return Defs.success;
@@ -460,6 +460,7 @@ public class CodeCleaner {
 	}
 	
 	private void prepareTryCatchBlocks() {
+		dumpCode();
 		for (int i=0; i<processedCode.size(); i++) {	
 			if (processedCode.get(i).matches("^try.+$") 
 					|| processedCode.get(i).matches("^catch.+$") 
