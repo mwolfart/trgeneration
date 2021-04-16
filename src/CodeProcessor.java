@@ -15,18 +15,22 @@ public class CodeProcessor {
 	private CodeCleaner cleaner;
 	// Graphs for each class and method of the code
 	private List<Graph> graphs;
+	private boolean processClean;
+	private boolean outputPNG;
 	// Debug flag
 	private boolean debug;
 	
-	public CodeProcessor(String fPath) {
+	public CodeProcessor(String fPath, boolean processClean, boolean outputPNG) {
 		filePath = fPath;
 		int lastSlashId = filePath.lastIndexOf("\\");
 		fileDir = (lastSlashId != -1 ? filePath.substring(0, lastSlashId+1) : "");
 
 		debug = false;
 		processedCode = new ArrayList<String>();
-		cleaner = new CodeCleaner(debug);
+		cleaner = new CodeCleaner(debug, processClean);
 		graphs = new ArrayList<Graph>();
+		this.processClean = processClean;
+		this.outputPNG = outputPNG;
 	}
 		
 	public void setDebug(boolean d) { 
@@ -98,7 +102,7 @@ public class CodeProcessor {
 		for (Graph graph : graphs) {
 			tr.ReadGraph(graph);
 			tr.useLineMode();
-			
+
 			String className = graph.getClassName();
 			String methodSignature = graph.getMethodSignature();
 
@@ -132,7 +136,7 @@ public class CodeProcessor {
 	
 	private void processClasses() {
 		if (debug) System.out.println("Processing classes in file " + filePath);
-		
+
 		List<Pair<Integer, Integer>> classesBlocks = getClassesBlocks();
 		
 		for (int i=0; i < classesBlocks.size(); i++) {
@@ -170,14 +174,16 @@ public class CodeProcessor {
 				System.out.println("Processing method " + methodSignature + "...");
 			}
 			
-			Helper.createDir(fileDir + className + "\\" + methodSignature);
+			Helper.createDir(fileDir + className + "/" + methodSignature);
 			
 			List<String> methodBody = copyCodeBlock(methodStartLine+1, methodEndLine-1);
 			Graph methodGraph = new Graph(methodName, methodSignature, className, methodBody, debug);
-			Map<Integer, List<Integer>> lineMap = cleaner.getCleanToOriginalCodeMapping();
+			Map<Integer, List<Integer>> lineMap = processClean ? null : cleaner.getCleanToOriginalCodeMapping();
 			
 			methodGraph.buildNodes();
-			methodGraph.writePng();
+			if (outputPNG) {
+				methodGraph.writePng();
+			}
 			methodGraph.simplifyDummyEdges();
 			methodGraph.adjustLineNumbers(methodStartLine+1, lineMap);
 			graphs.add(methodGraph);	

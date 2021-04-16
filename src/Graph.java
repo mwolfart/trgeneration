@@ -45,6 +45,7 @@ public class Graph {
 		numberNodes();
 		combineNodes();
 		fixNumbering();
+		removeDummies();
 	}
 	
 	public String getClassName() {
@@ -220,7 +221,9 @@ public class Graph {
 	public void adjustLineNumbers(int blockStartingLine, Map<Integer, List<Integer>> mapping) {
 		for (Node n : nodes) {
 			n.SetStartingLineId(n.GetStartingLineId() + blockStartingLine);
-			n.applyLineMapping(mapping);
+			if (mapping != null) {
+				n.applyLineMapping(mapping);
+			}
 			if (debug) {
 				System.out.println("Updated line ids for node " + n.GetNodeNumber() 
 					+ ": " + n.GetSourceCodeLineIds());
@@ -381,7 +384,7 @@ public class Graph {
 					}
 					else {
 						for (Integer start: edgeStartLinesList.get(edgeStartLinesList.size()-1)) {
-							if (!methodCode.get(start).matches("^\\bcontinue\\b.*")) {
+							if (!methodCode.get(start).matches("^\\b(continue|break)\\b.*")) {
 								addEdge(start, i+1);
 							}
 						}
@@ -390,7 +393,7 @@ public class Graph {
 						conditionalStartLines.remove(conditionalStartLines.size()-1);
 						
 						int prevInstrId = getPreviousInstructionLineId(i);
-						if (!methodCode.get(prevInstrId).matches("^\\bcontinue\\b.*")) {
+						if (!methodCode.get(prevInstrId).matches("^\\b(continue|break)\\b.*")) {
 							addEdge(prevInstrId, getNextInstructionLineId(i));
 						}
 						addEdge(openline, getNextInstructionLineId(i));
@@ -456,6 +459,13 @@ public class Graph {
 					if (methodCode.get(i).matches("^\\bcontinue\\b.*")) {
 						int loopStart = Helper.findConditionalLine(methodCode, i);
 						addEdge(i, loopStart);
+					}
+					else if (methodCode.get(i).matches("^\\bbreak\\b.*")) {
+						int loopStart = Helper.findConditionalLine(methodCode, i, true);
+						if (!methodCode.get(loopStart).matches("^\\bswitch\\b.*")) {
+							int loopEnd = Helper.findEndOfBlock(methodCode, loopStart+1);
+							addEdge(i, getNextInstructionLineId(loopEnd));							
+						}
 					}
 					if (i > 0) {
 						String previousInstruction = methodCode.get(getPreviousInstructionLineId(i));
@@ -655,6 +665,36 @@ public class Graph {
 			}
 			
 			if (!nodes.get(i).isExit()) nodes.get(i).SetExit(exit); //make sure override stays for return nodes
+		}
+	}
+	
+	private void removeDummies() {
+		for (int i=0; i<nodes.size(); i++) {
+			Node n = nodes.get(i);
+			if (n.GetSourceCode().contains("dummy_node") || n.GetSourceCode().contains("%forcenode%;")) {
+				List<Integer> nodesToDummy = new ArrayList<Integer>();
+				List<Integer> nodesFromDummy = new ArrayList<Integer>();
+				for (int j=0; j < edges.size(); j++) {
+					Edge e = edges.get(j);
+					if (e.GetStart() == n.GetNodeNumber()) {
+						nodesFromDummy.add(e.GetEnd());
+						edges.remove(j);
+						j--;
+					} else if (e.GetEnd() == n.GetNodeNumber()) {
+						nodesToDummy.add(e.GetStart());
+						edges.remove(j);
+						j--;
+					}
+				}
+				for (int a=0; a < nodesToDummy.size(); a++) {
+					int from = nodesToDummy.get(a);
+					for (int b=0; b < nodesFromDummy.size(); b++) {
+						int to = nodesFromDummy.get(b);
+						edges.add(new Edge(from, to));
+					}
+				}
+				if (debug) System.out.println("Successfully removed dummy node " + n.GetStartingLineId());
+			}
 		}
 	}
 	

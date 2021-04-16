@@ -20,11 +20,12 @@ public class TRGeneration {
 
 		Options options = new Options();
 		options.addOption("d", false, "Print debug output"); // does not have a value
-		options.addOption("o", true, "PNG output path"); // does not have a value
 		options.addOption("g", false, "Print graph structures");
 		options.addOption("l", false, "Print line flows");
 		options.addOption("t", false, "Print PPC and EC test requirements");
 		options.addOption("T", false, "Print complete test requirements");
+		options.addOption("i", false, "Output control flow graph PNG");
+		options.addOption("c", false, "Process clean code");
 
 		CommandLineParser parser = new BasicParser();
 		CommandLine cmd = null;
@@ -45,7 +46,11 @@ public class TRGeneration {
 		}
 		
 		for (String filePath : filesToProcess) {
-			processor = new CodeProcessor(filePath);
+			boolean processClean = false;
+			boolean outputImage = false;
+			if (cmd.hasOption("c")) processClean = true;
+			if (cmd.hasOption("i")) outputImage = true; 
+			processor = new CodeProcessor(filePath, processClean, outputImage);
 			readSource(filePath);
 			
 			try {

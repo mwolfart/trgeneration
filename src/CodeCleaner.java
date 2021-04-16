@@ -13,14 +13,17 @@ public class CodeCleaner {
 	private List<Map<Integer, List<Integer>>> lineMappings;
 	// (line mode only) List containing lines that originally were empty or only contained comments
 	private List<Integer> emptyLines;
+	// if set to false, will simplify the process of storing a map from the original source code line ids to the clean code line ids
+	private boolean trackOriginalLinesIdx;
 	// Debug flag
 	private boolean debug;
 	
 	// TODO make line mode optional in order to avoid unnecessary tasks
 	
-	public CodeCleaner(boolean debug) {
+	public CodeCleaner(boolean debug, boolean processCleanCode) {
 		lineMappings = new ArrayList<Map<Integer, List<Integer>>>();
 		emptyLines = new ArrayList<Integer>();
+		this.trackOriginalLinesIdx = !processCleanCode;
 	}
 	
 	public void clear() {
@@ -36,12 +39,19 @@ public class CodeCleaner {
 		processedCode = codeToCleanup;
 		cleanup();
 		addDummyNodes();
-		buildFullMap();
-		buildReverseFullMap();
-		
+
 		if (debug) {
+			System.out.println("CLEANUP DONE! Resulting code:");
 			dumpCode();
-			dumpLastMap();
+		}
+		
+		if (trackOriginalLinesIdx) {
+			buildFullMap();
+			buildReverseFullMap();
+			
+			if (debug) {
+				dumpLastMap();
+			}
 		}
 	}
 	
@@ -70,19 +80,19 @@ public class CodeCleaner {
 		trimLines();
 		separateLinesWithSemicolons();
 		if (debug) System.out.println("CLEANUP: Separated lines with semicolons");
-		trimLines();
+		trimLines();		
 		combineMultiLineStatements();
 		if (debug) System.out.println("CLEANUP: Combined multi-line statements");
-		trimLines();
+		trimLines();		
 		addBracketsToBlocks();
 		if (debug) System.out.println("CLEANUP: Added brackets to necessary items");
-		trimLines();
+		trimLines();		
 		convertForEachToFor();
 		if (debug) System.out.println("CLEANUP: Converted forEachs to fors");
 		trimLines();
 		separateLinesWithSemicolons();
 		if (debug) System.out.println("CLEANUP: Separated lines with semicolons");
-		trimLines();
+		trimLines();		
 		convertForToWhile();
 		if (debug) System.out.println("CLEANUP: Converted fors to whiles");
 		trimLines();
@@ -94,8 +104,6 @@ public class CodeCleaner {
 		trimLines();
 		prepareTryCatchBlocks();
 		if (debug) System.out.println("CLEANUP: Prepared try-catch blocks");
-		if (debug) System.out.println("CLEANUP DONE! Resulting code:");
-		if (debug) dumpCode();
 		return Defs.success;
 	}
 	
@@ -121,12 +129,14 @@ public class CodeCleaner {
 	
 	private void eliminateComments() {		
 		for (int i=0; i<processedCode.size(); i++) {
-			int idxSingle = Helper.getIndexOfReservedSymbol(processedCode.get(i), "//"); 
-			int idxMulti = Helper.getIndexOfReservedSymbol(processedCode.get(i), "/\\*"); 
+			int idxSingle = processedCode.get(i).indexOf("//"); 
+			int idxMulti = processedCode.get(i).indexOf("/*");
 			int idx = (idxSingle >= 0 && idxMulti >= 0) ? 
 					Math.min(idxSingle, idxMulti) : Math.max(idxSingle, idxMulti);
-					
+			
 			if (idx == -1) {
+				continue;
+			} else if (Helper.hasOddNumberOfQuotes(processedCode.get(i).substring(0, idx))) {
 				continue;
 			} else if (idx == idxSingle) {
 				processedCode.set(i, processedCode.get(i).substring(0, idx)); 
@@ -407,21 +417,26 @@ public class CodeCleaner {
 		for (int i=0; i < processedCode.size(); i++) {
 			mapping.put(i+removedLines, Helper.initArray(i));
 			String curLine = processedCode.get(i);
+			String nextLine = i < processedCode.size() - 1 ? processedCode.get(i+1) : "";
 			
 			while (!Helper.lineContainsReservedChar(curLine, ";")
 					&& !Helper.lineContainsReservedChar(curLine, "{") 
 					&& !Helper.lineContainsReservedChar(curLine, "}")
+					&& !Helper.lineContainsReservedChar(nextLine, "}")
 					&& !((Helper.lineContainsReservedWord(curLine, "case") || Helper.lineContainsReservedWord(curLine, "default"))
 							&& Helper.lineContainsReservedChar(curLine, ":"))
 					) {
 				String separator = (curLine.charAt(curLine.length()-1) != ' '
-									&& processedCode.get(i+1).charAt(0) != ' ' ? " " : "");
-				processedCode.set(i, curLine + separator + processedCode.get(i+1));
+									&& nextLine.charAt(0) != ' ' ? " " : "");
+				processedCode.set(i, curLine + separator + nextLine);
 				processedCode.remove(i+1);
 
 				removedLines++;
 				mapping.put(i+removedLines, Helper.initArray(i));
 				curLine = processedCode.get(i);
+				if (i < processedCode.size()-1) {
+					nextLine = processedCode.get(i+1);
+				}
 			}
 		}
 		
@@ -460,7 +475,6 @@ public class CodeCleaner {
 	}
 	
 	private void prepareTryCatchBlocks() {
-		dumpCode();
 		for (int i=0; i<processedCode.size(); i++) {	
 			if (processedCode.get(i).matches("^try.+$") 
 					|| processedCode.get(i).matches("^catch.+$") 
@@ -472,7 +486,11 @@ public class CodeCleaner {
 				if (startBlockLine.matches("^(%forcenode%)* try.+$") 
 						|| startBlockLine.matches("^(%forcenode%)* catch.+$")
 						|| startBlockLine.matches("^(%forcenode%)* finally.+$")) {
-					processedCode.set(i-1, "%forceendnode% " + processedCode.get(i-1));
+					if (startBlockLine.equals(processedCode.get(i-1))) {
+						processedCode.set(i-1, processedCode.get(i-1) + "%forceendnode%;");
+					} else {
+						processedCode.set(i-1, "%forceendnode% " + processedCode.get(i-1));
+					}
 				}
 			}
 		}
@@ -484,7 +502,7 @@ public class CodeCleaner {
 		List<Integer> loopsClosingLines = new ArrayList<Integer>();
 		
 		for (int i=0; i<processedCode.size(); i++) {			
-			if (processedCode.get(i).matches("^for.+$")) {
+			if (processedCode.get(i).matches("^\\bfor\\b.+$")) {
 				int depth = loopsClosingLines.size();
 				int closingLine = Helper.findEndOfBlock(processedCode, i+3);
 				
@@ -583,7 +601,9 @@ public class CodeCleaner {
 			if (line.charAt(i) != '(' && line.charAt(i) != ' ' && line.charAt(i) != '\t' && line.charAt(i) != ':') {
 				buffer += line.charAt(i);
 			} else if ((line.charAt(i) == ' ' || line.charAt(i) == '\t' || line.charAt(i) == ':') && buffer.length() > 0) {
-				info.add(buffer);
+				if (!buffer.equals("final")) {
+					info.add(buffer);
+				}
 				buffer = "";
 			}
 		}

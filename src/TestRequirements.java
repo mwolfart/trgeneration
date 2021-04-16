@@ -63,7 +63,6 @@ public class TestRequirements {
 			}
 		}
 		_traveledNodes.add(_node);
-		//System.out.print(_node.GetNodeNumber() + " ");
 		
 		List<Edge> edgesList = graph.getEdgesStartingFrom(_node);
 		Node node = null;
@@ -71,9 +70,7 @@ public class TestRequirements {
 		int end = -1;
 		for(int i = 0; i < edgesList.size(); i++) {
 			edge = edgesList.get(i);
-			//System.out.println("[PrintNode] Edge = " + edge);
 			end = edge.GetEnd();
-			//System.out.println("[PrintNode] Edge end = " + end);
 			node = graph.getNode(end);	// FIXME
 			TravelNode(_traveledNodes, node);
 		}
@@ -137,7 +134,6 @@ public class TestRequirements {
 		for(int i = 0; i < edgesList.size(); i++) {
 			skip = false;
 			edge1 = edgesList.get(i);
-			//System.out.println("[PrintEdge] Edge = " + edge);
 			for(int j = 0; j < _traveledEdges.size(); j++) {
 				edge2 = _traveledEdges.get(j);
 				if(edge1.isSameEdge(edge2)) {
@@ -149,7 +145,6 @@ public class TestRequirements {
 				int end = edge1.GetEnd();
 				Node node = graph.getNode(end);
 				_traveledEdges.add(edge1);
-				//System.out.print("[" + edge1.GetStart() + "," + edge1.GetEnd() + "] ");
 				
 				TravelEdges(_traveledEdges, node);
 			}
@@ -208,12 +203,10 @@ public class TestRequirements {
 		for(int i = 0; i < edgesList1.size(); i++) {
 			skip = false;
 			edge1 = edgesList1.get(i);
-			//System.out.println("Edge1 = " + edge1);
 			node1 = graph.getNode(edge1.GetEnd());
 			List<Edge> edgesList2 = graph.getEdgesStartingFrom(node1);
 			for(int j = 0; j < edgesList2.size(); j++) {
 				edge2 = edgesList2.get(j);
-				//System.out.println("Edge2 = " + edge2);
 				ep1 = new EdgePair(edge1, edge2);
 				
 				for(int k = 0; k < _traveledEPs.size(); k++) {
@@ -225,7 +218,6 @@ public class TestRequirements {
 				}
 				if(skip == false) {
 					_traveledEPs.add(ep1);
-					//System.out.print("[" + ep1.GetStart() + "," + ep1.GetMiddle() + "," + ep1.GetEnd() + "] ");
 					
 					TravelEdgePairs(_traveledEPs, node1);
 				}
@@ -273,12 +265,11 @@ public class TestRequirements {
 		SimplePathList spl = new SimplePathList(traveledNodes);
 		SimplePathPool pool = new SimplePathPool();
 		GenerateSimplePath(pool, spl);
-		//System.out.println("Final Simple Path : " + pool);
+
 		PrimePathList ppl = new PrimePathList();
 		ppl.ChoosePPLCandidates(pool);
-		//System.out.println("1st Prime Path TR: " + ppl);
 		ppl.RemoveSubPath();
-		//System.out.println("Final Prime Path TR: ");
+
 		if (breakLines) ppl.allowLineBreaks();
 		output += ppl + "\n";
 		
@@ -297,10 +288,8 @@ public class TestRequirements {
 		}
 		
 		if(_spl.size() == 0) {
-			//System.out.println("SimplePathList is empty");
 			return;
 		}
-		//System.out.println(_pool);
 		
 		Iterator<SimplePath> iterator = _spl.iterator();
 		SimplePath sp;
@@ -309,11 +298,9 @@ public class TestRequirements {
 		while(iterator.hasNext()) {
 			sp = iterator.next();
 			if(!_pool.isExist(sp)) {
-				//System.out.println("Added SimplePath: " + sp);
 				_pool.add(sp);
 			}
 			if(sp.isExclamation() || sp.isAsterisk()) {
-				//System.out.println("!(end node): " + sp.isExclamation() + ", *(cycle): " + sp.isAsterisk());
 				continue;	
 			}
 			
@@ -324,22 +311,16 @@ public class TestRequirements {
 			int end = -1;
 			for(int i = 0; i < edgesList.size(); i++) {
 				edge = edgesList.get(i);
-				//System.out.println("Edges: " + edge);
 				end = edge.GetEnd();
-				//System.out.println("end: " + end);
 				node = graph.getNode(end);
-				//System.out.println("Node: " + node);
-				//System.out.println("SP: " + sp);
-				//System.out.println("isSP(node): " + sp.isSP(node));
 			
-				if(sp.isSP(node)) {			// When the list is a simple path after adding 'node'
+				// When the list is a simple path after adding 'node'
+				if(sp.isSP(node)) {			
 					SimplePath sp2 = sp.ExtendSP(node);
-					//System.out.println("Extended: " + sp2);
 					spl2.add(sp2);	
 				}
 			}	
 		}
-		//System.out.println("SimplePath List : " + spl2);
 		GenerateSimplePath(_pool, spl2);
 	}
 	

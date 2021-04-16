@@ -50,6 +50,18 @@ public class Helper {
 		return match;
 	}
 	
+	public static boolean hasOddNumberOfQuotes(String text) {
+		int countSimple = 0;
+		int countDouble = 0;
+		for (int i = 0; i < text.length(); i++) {
+			if (text.charAt(i) == '"' && i > 0 && text.charAt(i-1) != '\\')
+				countDouble++;
+			else if (text.charAt(i) == '\'' && i > 0 && text.charAt(i-1) != '\\')
+				countSimple++;
+		}
+		return countSimple % 2 == 1 || countDouble % 2 == 1;
+	}
+	
 	public static void createDir(String dirPath) {
 		dirPath = dirPath.replace("<", "{").replace(">", "}").replace("?", "QM");
 		File dir = new File(dirPath);
@@ -158,7 +170,7 @@ public class Helper {
 		int curLineId = startingLine;
 		int closingLine = -1;
 		int depth = 0;
-		
+
 		while (curLineId < sourceCode.size() && closingLine == -1) {
 			String curLine = sourceCode.get(curLineId);
 			if (Helper.lineContainsReservedChar(curLine, "{")) {
@@ -170,7 +182,7 @@ public class Helper {
 			}
 			curLineId++;
 		}
-
+		
 		if (closingLine == -1) {
 			System.err.println("Braces are not balanced");
 			System.err.println("When trying to find end of block starting at line " + (startingLine+1));
@@ -181,10 +193,11 @@ public class Helper {
 		return closingLine;
 	}
 	
-	public static int findConditionalLine(List<String> sourceCode, int startingLine) {
+	public static int findConditionalLine(List<String> sourceCode, int startingLine, boolean isBreak) {
 		int curLineId = startingLine;
 		int conditionalLine = -1;
 		int depth = 0;
+		String words = isBreak ? "do|while|switch" : "do|while";
 		
 		while (curLineId >= 0 && conditionalLine == -1) {
 			String curLine = sourceCode.get(curLineId);
@@ -193,19 +206,23 @@ public class Helper {
 			} else if (Helper.lineContainsReservedChar(curLine, "{") && depth > 0) {
 				depth--;
 			} else if (Helper.lineContainsReservedChar(curLine, "{") 
-					&& (curLine.matches("^\\b(do|while)\\b.*")
-							|| curLine.matches("^[a-zA-Z_]+[a-zA-Z0-9_]*:\\s*(do|while).*"))) {
+					&& (curLine.matches("^\\b("+words+")\\b.*")
+							|| curLine.matches("^[a-zA-Z_]+[a-zA-Z0-9_]*:\\s*("+words+").*"))) {
 				conditionalLine = curLineId;
 			}
 			curLineId--;
 		}
 
 		if (conditionalLine == -1) {
-			System.err.println("Continue without while or do");
+			System.err.println("Continue or break without while or do");
 			System.err.println("When trying to find conditional of continue at line " + (startingLine+1));			
 			System.exit(2);
 		}
 		
 		return conditionalLine;
+	}
+	
+	public static int findConditionalLine(List<String> sourceCode, int startingLine) {
+		return findConditionalLine(sourceCode, startingLine, false);
 	}
 }
