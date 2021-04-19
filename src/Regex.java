@@ -1,6 +1,6 @@
 
 public class Regex {
-	public static String classSignature = "(((|public|final|abstract|private|static|protected)(\\s+))?(class)(\\s+)(\\w+)(<.*>)?(\\s+extends\\s+\\w+)?(<.*>)?(\\s+implements\\s+)?(.*)?(<.*>)?(\\s*))\\{$";
+	public static String classSignature = "(((public|protected|private|)(final|abstract|)(\\s+))?(class)(\\s+)(\\w+)(<.*>)?(\\s+extends\\s+\\w+)?(<.*>)?(\\s+implements\\s+)?(.*)?(<.*>)?(\\s*))\\{$";
 	public static String methodSignature = "(public|protected|private|\\s)(\\s*static)? +[\\w\\<\\>\\[\\]]+\\s+(\\w+) *\\([^\\)]*\\) *(\\{?|[^;])";
 	
 	public static String reservedMethods = "(if|while|for|class|switch|try|catch|finally|return)";

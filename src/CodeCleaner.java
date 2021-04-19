@@ -102,6 +102,9 @@ public class CodeCleaner {
 		separateCaseStatements();
 		if (debug) System.out.println("CLEANUP: Separated case statements");
 		trimLines();
+		removeIndependentBlocks();		
+		if (debug) System.out.println("CLEANUP: Removed independent blocks");
+		trimLines();
 		prepareTryCatchBlocks();
 		if (debug) System.out.println("CLEANUP: Prepared try-catch blocks");
 		return Defs.success;
@@ -496,6 +499,34 @@ public class CodeCleaner {
 		}
 	}
 	
+	private void removeIndependentBlocks() {
+		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
+		List<Integer> toRemove = new ArrayList<Integer>();
+		
+		for (int i=0; i<processedCode.size(); i++) {
+			if (processedCode.get(i).matches("^\\{$")) {
+				int closing = Helper.findEndOfBlock(processedCode, i+1);
+				toRemove.add(i);
+				toRemove.add(closing);
+			}
+		}
+		
+		int removedLines = 0;
+
+		for (int i=0; i<processedCode.size(); i++) {
+			if (toRemove.contains(i+removedLines)) {
+				mapping.put(i+removedLines, Helper.initArray(i-1));
+				processedCode.remove(i);
+				removedLines++;
+				i--;
+			} else {
+				mapping.put(i+removedLines, Helper.initArray(i));
+			}
+		}
+		
+		lineMappings.add(mapping);
+	}
+	
 	//turn for loops into while loops
 	private void convertForToWhile() {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
@@ -572,7 +603,8 @@ public class CodeCleaner {
 		
 		for (int i=0; i<processedCode.size(); i++) {			
 			if (processedCode.get(i).matches("^for.+$")
-					&& Helper.lineContainsReservedChar(processedCode.get(i), ":")) {
+					&& Helper.lineContainsReservedChar(processedCode.get(i), ":")
+					&& !Helper.lineContainsReservedChar(processedCode.get(i), "?")) {
 				List<String> forEachInformation = extractForEachInfo(processedCode.get(i));
 				String type = forEachInformation.get(0);
 				String varName = forEachInformation.get(1);
