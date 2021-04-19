@@ -423,9 +423,9 @@ public class Graph {
 					addEdgesForSwitch(openline, i);
 				}
 				else if (methodCode.get(openline).toLowerCase().matches("^%forcenode% \\btry\\b.*")) {
-					// TODO check if try may not have catch
-					if (!methodCode.get(i+1).toLowerCase().matches("^%forcenode% \\bcatch\\b.*")) {
-						System.err.println("Try without catch block");
+					if (!methodCode.get(i+1).toLowerCase().matches("^%forcenode% \\bcatch\\b.*")
+							&& !methodCode.get(i+1).toLowerCase().matches("^%forcenode% \\bfinally\\b.*")) {
+						System.err.println("Try without catch or finally block");
 						System.exit(2);
 					}
 					
