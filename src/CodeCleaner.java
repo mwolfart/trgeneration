@@ -532,6 +532,8 @@ public class CodeCleaner {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		List<Integer> loopsClosingLines = new ArrayList<Integer>();
 		
+		dumpCode();
+		
 		for (int i=0; i<processedCode.size(); i++) {			
 			if (processedCode.get(i).matches("^\\bfor\\b.+$")) {
 				int depth = loopsClosingLines.size();
@@ -604,7 +606,7 @@ public class CodeCleaner {
 		for (int i=0; i<processedCode.size(); i++) {			
 			if (processedCode.get(i).matches("^for.+$")
 					&& Helper.lineContainsReservedChar(processedCode.get(i), ":")
-					&& !Helper.lineContainsReservedChar(processedCode.get(i), "?")) {
+					&& !Helper.lineContainsReservedChar(processedCode.get(i), "\\?")) {
 				List<String> forEachInformation = extractForEachInfo(processedCode.get(i));
 				String type = forEachInformation.get(0);
 				String varName = forEachInformation.get(1);
