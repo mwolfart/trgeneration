@@ -360,8 +360,7 @@ public class Graph {
 						addEdge(i+1,openline); //looping edge
 						addEdge(i+1,getNextInstructionLineId(i+1)); //loop exit edge
 					} else {
-						System.err.println("Do without while");
-						System.exit(2);
+						throw new Exception("Do without while");
 					}
 				}
 				//for conditionals, we won't add edges until after the block.  Then link all the close braces to the end of the block
@@ -402,8 +401,7 @@ public class Graph {
 				else if (methodCode.get(openline).toLowerCase().substring(0,4).equals("else")) {
 					if (edgeStartLinesList.size() == 0 
 							|| edgeStartLinesList.get(edgeStartLinesList.size()-1).size() == 0){
-						System.err.println("Else without if block");
-						System.exit(2);
+						throw new Exception("Else without if block");
 					}
 					edgeStartLinesList.get(edgeStartLinesList.size()-1).add(i-1);
 					
@@ -425,8 +423,7 @@ public class Graph {
 				else if (methodCode.get(openline).toLowerCase().matches("^%forcenode% \\btry\\b.*")) {
 					if (!methodCode.get(i+1).toLowerCase().matches("^%forcenode% \\bcatch\\b.*")
 							&& !methodCode.get(i+1).toLowerCase().matches("^%forcenode% \\bfinally\\b.*")) {
-						System.err.println("Try without catch or finally block");
-						System.exit(2);
+						throw new Exception("Try without catch or finally block");
 					}
 					
 					List<Integer> catchClosingLines = new ArrayList<>();
