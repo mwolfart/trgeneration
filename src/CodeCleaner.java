@@ -35,7 +35,7 @@ public class CodeCleaner {
 		debug = d;
 	}
 	
-	public void cleanupCode(List<String> codeToCleanup) {
+	public void cleanupCode(List<String> codeToCleanup) throws Exception {
 		processedCode = codeToCleanup;
 		cleanup();
 		addDummyNodes();
@@ -65,7 +65,7 @@ public class CodeCleaner {
 	// CURRENT FORMAT CONSTRAINTS:
 	// TODO surrounding brackets aren't always necessary if blocks are simple
 	//   however, nested blocks without brackets will cause problems.
-	private int cleanup() {
+	private int cleanup() throws Exception {
 		eliminateComments();
 		if (debug) System.out.println("CLEANUP: Eliminated comments");
 		trimLines();
@@ -477,7 +477,7 @@ public class CodeCleaner {
 		lineMappings.add(mapping);
 	}
 	
-	private void prepareTryCatchBlocks() {
+	private void prepareTryCatchBlocks() throws Exception {
 		for (int i=0; i<processedCode.size(); i++) {	
 			if (processedCode.get(i).matches("^try.+$") 
 					|| processedCode.get(i).matches("^catch.+$") 
@@ -499,7 +499,7 @@ public class CodeCleaner {
 		}
 	}
 	
-	private void removeIndependentBlocks() {
+	private void removeIndependentBlocks() throws Exception {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		List<Integer> toRemove = new ArrayList<Integer>();
 		
@@ -528,7 +528,7 @@ public class CodeCleaner {
 	}
 	
 	//turn for loops into while loops
-	private void convertForToWhile() {
+	private void convertForToWhile() throws Exception {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		List<Integer> loopsClosingLines = new ArrayList<Integer>();
 		
@@ -586,7 +586,7 @@ public class CodeCleaner {
 		lineMappings.add(mapping);
 	}
 	
-	private List<Integer> getContinuesInLoopBlock(int loopStartingLine, int loopClosingLine) {
+	private List<Integer> getContinuesInLoopBlock(int loopStartingLine, int loopClosingLine) throws Exception {
 		List<Integer> foundLineIds = new ArrayList<Integer>();
 		for (int i=loopStartingLine+1; i<loopClosingLine; i++) {
 			String curLine = processedCode.get(i);
@@ -651,7 +651,7 @@ public class CodeCleaner {
 		return info;
 	}
 
-	private void addDummyNodes() {
+	private void addDummyNodes() throws Exception {
 		Map<Integer, List<Integer>> mapping = new HashMap<Integer, List<Integer>>();
 		int numAddedLines = 0;
 		

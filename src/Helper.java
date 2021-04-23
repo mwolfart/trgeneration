@@ -62,17 +62,16 @@ public class Helper {
 		return countSimple % 2 == 1 || countDouble % 2 == 1;
 	}
 	
-	public static void createDir(String dirPath) {
+	public static void createDir(String dirPath) throws IOException {
 		dirPath = dirPath.replace("<", "{").replace(">", "}").replace("?", "QM");
 		File dir = new File(dirPath);
 		if (dir.exists()) return;
 		if (!dir.mkdir()) {
-			System.err.println("Could not create directory " + dirPath);
-			System.exit(2);
+			throw new IOException("Could not create directory " + dirPath);
 		}
 	}
 	
-	public static void writeFile(String filePath, String content) {
+	public static void writeFile(String filePath, String content) throws IOException {
 		filePath = filePath.replace("<", "{").replace(">", "}").replace("?", "").replace("\"", "'");
 		try {
 			File file = new File(filePath);
@@ -80,7 +79,7 @@ public class Helper {
 			fr.write(content);
 			fr.close();
 		} catch (IOException e) {
-			System.err.println("Error in writing file " + filePath);
+			throw new IOException("Error in writing file " + filePath);
 		}
 	}
 	
@@ -100,7 +99,7 @@ public class Helper {
 	}
 	
 	/* TODO: maybe refactor the three next functions */
-	public static int findStartOfBlock(List<String> sourceCode, int startingLine) {
+	public static int findStartOfBlock(List<String> sourceCode, int startingLine) throws Exception {
 		return findStartOfBlock(sourceCode, startingLine, false);
 	}
 	
@@ -140,7 +139,7 @@ public class Helper {
 	}
 
 	/* TODO: Maybe reenginer this */
-	public static int findStartOfBlock(List<String> sourceCode, int startingLine, boolean useBlockLines) {
+	public static int findStartOfBlock(List<String> sourceCode, int startingLine, boolean useBlockLines) throws Exception {
 		int curLineId = startingLine;
 		int openingLine = -1;
 		int depth = 0;
@@ -158,15 +157,13 @@ public class Helper {
 		}
 
 		if (openingLine == -1) {
-			System.err.println("Braces are not balanced");
-			System.err.println("When trying to find start of block ending at line " + (startingLine+1));			
-			System.exit(2);
+			throw new Exception("Braces are not balanced when trying to find start of block ending at line " + (startingLine+1));			
 		}
 		
 		return openingLine;
 	}
 	
-	public static int findEndOfBlock(List<String> sourceCode, int startingLine) {
+	public static int findEndOfBlock(List<String> sourceCode, int startingLine) throws Exception {
 		int curLineId = startingLine;
 		int closingLine = -1;
 		int depth = 0;
@@ -184,16 +181,14 @@ public class Helper {
 		}
 		
 		if (closingLine == -1) {
-			System.err.println("Braces are not balanced");
-			System.err.println("When trying to find end of block starting at line " + (startingLine+1));
-			System.err.println("Line content: " + sourceCode.get(startingLine));
-			System.exit(2);
+			throw new Exception("Braces are not balanced when trying to find end of block starting at line " 
+					+ (startingLine+1) + "\nLine content: " + sourceCode.get(startingLine));
 		}
 		
 		return closingLine;
 	}
 	
-	public static int findConditionalLine(List<String> sourceCode, int startingLine, boolean isBreak) {
+	public static int findConditionalLine(List<String> sourceCode, int startingLine, boolean isBreak) throws Exception {
 		int curLineId = startingLine;
 		int conditionalLine = -1;
 		int depth = 0;
@@ -214,15 +209,13 @@ public class Helper {
 		}
 
 		if (conditionalLine == -1) {
-			System.err.println("Continue or break without while or do");
-			System.err.println("When trying to find conditional of continue at line " + (startingLine+1));			
-			System.exit(2);
+			throw new Exception("Continue or break without while or do when trying to find conditional of continue at line " + (startingLine+1));
 		}
 		
 		return conditionalLine;
 	}
 	
-	public static int findConditionalLine(List<String> sourceCode, int startingLine) {
+	public static int findConditionalLine(List<String> sourceCode, int startingLine) throws Exception {
 		return findConditionalLine(sourceCode, startingLine, false);
 	}
 }

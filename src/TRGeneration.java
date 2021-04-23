@@ -1,9 +1,17 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.commons.cli.*;
 
 public class TRGeneration {
@@ -26,14 +34,17 @@ public class TRGeneration {
 		options.addOption("T", false, "Print complete test requirements");
 		options.addOption("i", false, "Output control flow graph PNG");
 		options.addOption("c", false, "Process clean code");
+		options.addOption("p", true, "Test timeout");
 
 		CommandLineParser parser = new BasicParser();
-		CommandLine cmd = null;
+		CommandLine cmd_ = null;
 		try {
-			cmd = parser.parse(options, args);
+			cmd_ = parser.parse(options, args);
 		} catch (ParseException e) {
-			System.err.println("Caught ParseException: " + e.getMessage());
+			System.err.println("ERROR: Caught ParseException: " + e.getMessage());
 		}
+		
+		final CommandLine cmd = cmd_;
 
 		String inputPath = args[args.length - 1];
 		File inputFile = new File(inputPath);
@@ -44,31 +55,74 @@ public class TRGeneration {
 		} else {
 			filesToProcess.add(inputPath);
 		}
+
+		int timeoutSecs = -1;
+		if (cmd.hasOption("p")) {
+			timeoutSecs = Integer.parseInt(cmd.getOptionValue('p'));
+		}
+
+		final boolean outputImage = cmd.hasOption("i");
+		final boolean processClean = cmd.hasOption("c");		
+		final boolean debug = cmd.hasOption("d");
+		final boolean writeGraphStructures = cmd.hasOption("g");
+		final boolean writeLineEdges = cmd.hasOption("l");
+		final boolean writeTestRequirements = cmd.hasOption("T");
+		final boolean writePPCandECrequirements = cmd.hasOption("t");
 		
 		for (String filePath : filesToProcess) {
-			boolean processClean = false;
-			boolean outputImage = false;
-			if (cmd.hasOption("c")) processClean = true;
-			if (cmd.hasOption("i")) outputImage = true; 
+			if (debug) {
+				System.out.println("Processing file " + filePath + "...");
+			}
+			
 			processor = new CodeProcessor(filePath, processClean, outputImage);
 			readSource(filePath);
 			
-			try {
-				if (cmd.hasOption("d")) processor.setDebug(true);
-				processor.build();
-				
-				if (cmd.hasOption("g")) processor.writeGraphStructures();
-				if (cmd.hasOption("l")) processor.writeLineEdges();
-				if (cmd.hasOption("T")) processor.writeTestRequirements();
-				if (cmd.hasOption("t")) processor.writePPCandECrequirements();
-			} catch(Exception e) {
-				System.err.println("Error while processing file " + filePath + ":");
-				throw e;
+			if (timeoutSecs > -1) {			
+				final Duration timeout = Duration.ofSeconds(timeoutSecs);
+				ExecutorService executor = Executors.newSingleThreadExecutor();
+	
+				@SuppressWarnings("unchecked")
+				final Future<String> handler = executor.submit(new Callable() {
+				    @Override
+				    public String call() throws Exception {
+						processInput(processor, writeGraphStructures, writeLineEdges, writeTestRequirements, writePPCandECrequirements, debug);
+						return "Done";
+				    }
+				});
+	
+				try {
+					handler.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+				} catch (TimeoutException e) {
+					System.err.println("ERROR: Timeout while processing file " + filePath + ":" + e.getMessage());
+				    handler.cancel(true);
+				} catch(Exception e) {
+					System.err.println("ERROR: Failed to process file " + filePath + ":" + e.getMessage());
+				}
+	
+				executor.shutdownNow();
+				processor.clear();
+			} else {
+				try {
+					processInput(processor, writeGraphStructures, writeLineEdges, writeTestRequirements, writePPCandECrequirements, debug);
+				} catch(Exception e) {
+					System.err.println("ERROR: Failed to process file " + filePath + ":" + e.getMessage());
+				}
 			}
-			processor.clear();
 		}
 	}
 
+	private static void processInput(CodeProcessor proc, boolean writeGraphStructures, 
+			boolean writeLineEdges, boolean writeTestRequirements, 
+			boolean writePPCandECrequirements, boolean debug) throws Exception {
+		if (debug) proc.setDebug(true);
+		proc.build();
+		
+		if (writeGraphStructures) proc.writeGraphStructures();
+		if (writeLineEdges) proc.writeLineEdges();
+		if (writeTestRequirements) proc.writeTestRequirements();
+		if (writePPCandECrequirements) proc.writePPCandECrequirements();
+	}
+	
 	private static void readSource(String path) {
 		FileInputStream fstream = null;
 

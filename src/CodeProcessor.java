@@ -48,14 +48,20 @@ public class CodeProcessor {
 		cleaner.clear();
 	}
 	
-	public void build() {
-		cleaner.cleanupCode(processedCode);
-		if (debug)
-			cleaner.dumpCode();
+	public void build() throws Exception {
+		try {
+			cleaner.cleanupCode(processedCode);
+			if (debug)
+				cleaner.dumpCode();
+		}
+		catch (Exception e) {
+			System.err.println("ERROR: Failed to clean up file " + filePath + ". The following exception happened:" + e.getMessage());
+			return;
+		}
 		processClasses();
 	}
 	
-	public void writeGraphStructures() {
+	public void writeGraphStructures() throws Exception {
 		for(Graph graph : graphs) {
 			String className = graph.getClassName();
 			String methodSignature = graph.getMethodSignature();
@@ -70,7 +76,7 @@ public class CodeProcessor {
 		}
 	}
 	
-	public void writePPCandECrequirements() {
+	public void writePPCandECrequirements() throws Exception {
 		TestRequirements tr = new TestRequirements();
 		if (debug) tr.allowDebug();
 		
@@ -95,7 +101,7 @@ public class CodeProcessor {
 		}
 	}
 	
-	public void writeTestRequirements() {
+	public void writeTestRequirements() throws Exception {
 		TestRequirements tr = new TestRequirements();
 		if (debug) tr.allowDebug();
 		
@@ -119,7 +125,7 @@ public class CodeProcessor {
 		}
 	}
 	
-	public void writeLineEdges() {
+	public void writeLineEdges() throws Exception {
 		for (Graph graph : graphs) {
 			String className = graph.getClassName();
 			String methodSignature = graph.getMethodSignature();
@@ -134,7 +140,7 @@ public class CodeProcessor {
 		}
 	}
 	
-	private void processClasses() {
+	private void processClasses() throws Exception {
 		if (debug) System.out.println("Processing classes in file " + filePath);
 
 		List<Pair<Integer, Integer>> classesBlocks = getClassesBlocks();
@@ -149,7 +155,7 @@ public class CodeProcessor {
 		}
 	}
 	
-	private void processMethods(int startLine, int endLine, String className) {
+	private void processMethods(int startLine, int endLine, String className) throws Exception {
 		if (debug) System.out.println("Processing methods for class " + className);
 		
 		List<Pair<Integer, Integer>> methodBlocks = getMethodBlocks(startLine, endLine);
@@ -174,24 +180,28 @@ public class CodeProcessor {
 				System.out.println("Processing method " + methodSignature + "...");
 			}
 			
-			Helper.createDir(fileDir + className + "/" + methodSignature);
-			
-			List<String> methodBody = copyCodeBlock(methodStartLine+1, methodEndLine-1);
-			Graph methodGraph = new Graph(methodName, methodSignature, className, methodBody, debug);
-			Map<Integer, List<Integer>> lineMap = processClean ? null : cleaner.getCleanToOriginalCodeMapping();
-			
-			methodGraph.buildNodes();
-			if (outputPNG) {
-				methodGraph.writePng();
+			try {
+				Helper.createDir(fileDir + className + "/" + methodSignature);
+				
+				List<String> methodBody = copyCodeBlock(methodStartLine+1, methodEndLine-1);
+				Graph methodGraph = new Graph(methodName, methodSignature, className, methodBody, debug);
+				Map<Integer, List<Integer>> lineMap = processClean ? null : cleaner.getCleanToOriginalCodeMapping();
+				
+				methodGraph.buildNodes();
+				if (outputPNG) {
+					methodGraph.writePng();
+				}
+				methodGraph.simplifyDummyEdges();
+				methodGraph.adjustLineNumbers(methodStartLine+1, lineMap);
+				graphs.add(methodGraph);	
+			} catch (Exception e) {
+				System.err.println("ERROR: Failed to generate graph for method " + methodSignature + ". The following exception happened: " + e.getMessage());
 			}
-			methodGraph.simplifyDummyEdges();
-			methodGraph.adjustLineNumbers(methodStartLine+1, lineMap);
-			graphs.add(methodGraph);	
 		}
 	}
 	
 	/* TODO: Support class inside classes */
-	private List<Pair<Integer, Integer>> getClassesBlocks() {
+	private List<Pair<Integer, Integer>> getClassesBlocks() throws Exception {
 		List<Pair<Integer, Integer>> classesBlocks = new ArrayList<Pair<Integer, Integer>>();
 		
 		for (int i=0; i<processedCode.size(); i++) {
@@ -212,7 +222,7 @@ public class CodeProcessor {
 	}
 	
 	/* TODO: Support methods/functions inside methods */
-	private List<Pair<Integer, Integer>> getMethodBlocks(int classStartLineId, int classEndLineId) {
+	private List<Pair<Integer, Integer>> getMethodBlocks(int classStartLineId, int classEndLineId) throws Exception {
 		List<Pair<Integer, Integer>> methodBlocks = new ArrayList<Pair<Integer, Integer>>();
 
 		for (int i=classStartLineId; i<classEndLineId; i++) {

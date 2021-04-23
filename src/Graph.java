@@ -40,7 +40,7 @@ public class Graph {
 		debug = _d;
 	}
 	
-	public void buildNodes() {
+	public void buildNodes() throws Exception {
 		getNodes();
 		numberNodes();
 		combineNodes();
@@ -331,7 +331,7 @@ public class Graph {
 		return nextLineId;
 	}
 	
-	private void getNodes() {
+	private void getNodes() throws Exception {
 		if (debug) {
 			dumpCode();
 		}
