@@ -8,6 +8,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/commons-cli-1.2.jar"/>
 	<classpathentry kind="lib" path="lib/commons-lang3-3.10.jar"/>
-	<classpathentry kind="lib" path="lib/scheduler-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/scheduler-1.1.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
