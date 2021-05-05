@@ -5,14 +5,14 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
+import wniemiec.util.task.Scheduler;
 
 public class TRGeneration {
 	private static CodeProcessor processor;
@@ -79,27 +79,15 @@ public class TRGeneration {
 			
 			if (timeoutSecs > -1) {			
 				final Duration timeout = Duration.ofSeconds(timeoutSecs);
-				ExecutorService executor = Executors.newSingleThreadExecutor();
-	
-				@SuppressWarnings("unchecked")
-				final Future<String> handler = executor.submit(new Callable() {
-				    @Override
-				    public String call() throws Exception {
+				Scheduler.setTimeoutToRoutine(() -> {
+					try {
 						processInput(processor, writeGraphStructures, writeLineEdges, writeTestRequirements, writePPCandECrequirements, debug);
-						return "Done";
-				    }
-				});
-	
-				try {
-					handler.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-				} catch (TimeoutException e) {
-					System.err.println("ERROR: Timeout while processing file " + filePath + ":" + e.getMessage());
-				    handler.cancel(true);
-				} catch(Exception e) {
-					System.err.println("ERROR: Failed to process file " + filePath + ":" + e.getMessage());
-				}
-	
-				executor.shutdownNow();
+					} 
+					catch (Exception e) {
+						System.err.println("ERROR: Failed to process file " + filePath + ":" + e.getMessage());
+					}
+				}, timeout.toMillis());
+				
 				processor.clear();
 			} else {
 				try {
