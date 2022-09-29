@@ -1,3 +1,11 @@
+# TRGeneration
+
+- This project was forked and extended to perform studies across Java libraries and their testing coverage. It was presented as a final paper for the computer science graduation course in 2021.
+- The application basically collects a source code in Java and outputs coverage data on them. This data is used along with other analyses in order to verify the libraries' present test cases.
+- The original application was not supporting all features in a Java code, so the biggest effort was on extending it to support most Java codes
+
+## Original project readme
+
 Team Members:  Seung Hun (Stan) Lee, Evan Platt
 
 Project Title:  Control Flow Graph and Structural Test Requirement Generator
