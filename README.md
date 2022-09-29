@@ -1,6 +1,6 @@
 # TRGeneration
 
-- This project was forked and extended to perform studies across Java libraries and their testing coverage. It was presented as a final paper for the computer science graduation course in 2021.
+- This project was forked and extended to perform studies across Java libraries and their testing coverage. It was presented as a final paper for the computer science graduation course in 2021, with help of student Keslley Lima and professor Érika F. Cota.
 - The application basically collects a source code in Java and outputs coverage data on them. This data is used along with other analyses in order to verify the libraries' present test cases.
 - The original application was not supporting all features in a Java code, so the biggest effort was on extending it to support most Java codes
 
